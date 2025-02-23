@@ -315,38 +315,60 @@
             }
         });
 
+        // Function to add book to reading list
+        function addToReadingList(bookId) {
+            if (!localStorage.getItem('authToken')) {
+                window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+
+            fetch(`../get_book_details.php?book_id=${bookId}`)
+                .then(response => response.json())
+                .then(book => {
+                    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+                    
+                    if (!readingList['want-to-read']) {
+                        readingList['want-to-read'] = [];
+                    }
+                    
+                    // Check if book is already in any list
+                    const allBooks = [
+                        ...(readingList['currently-reading'] || []),
+                        ...(readingList['want-to-read'] || []),
+                        ...(readingList['completed'] || [])
+                    ];
+                    
+                    if (allBooks.some(b => b.id === bookId)) {
+                        alert('This book is already in your reading list!');
+                        return;
+                    }
+                    
+                    // Add all necessary book information
+                    readingList['want-to-read'].push({
+                        id: book.book_id,
+                        title: book.title,
+                        author: book.author,
+                        cover_image: book.cover_image,
+                        description: book.description,
+                        genre: book.genre,
+                        average_rating: book.average_rating,
+                        total_ratings: book.total_ratings
+                    });
+                    
+                    localStorage.setItem('readingList', JSON.stringify(readingList));
+                    alert('Book added to your reading list!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error adding book to reading list. Please try again.');
+                });
+        }
+
         // Handle Add to List button
         document.querySelector('.add-to-list-btn').addEventListener('click', () => {
             if (!currentBookId) return;
             
-            // Get current reading list from localStorage
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            if (!readingList['want-to-read']) {
-                readingList['want-to-read'] = [];
-            }
-
-            // Check if book is already in any list
-            const allBooks = [
-                ...(readingList['currently-reading'] || []),
-                ...(readingList['want-to-read'] || []),
-                ...(readingList['completed'] || [])
-            ];
-
-            if (allBooks.some(book => book.id === currentBookId)) {
-                alert('This book is already in your reading list!');
-                return;
-            }
-
-            // Add book to Want to Read list
-            readingList['want-to-read'].push({
-                id: currentBookId,
-                title: document.getElementById('modalBookTitle').textContent,
-                author: document.getElementById('modalBookAuthor').textContent,
-                cover: document.getElementById('modalBookCover').src
-            });
-
-            localStorage.setItem('readingList', JSON.stringify(readingList));
-            alert('Book added to your reading list!');
+            addToReadingList(currentBookId);
         });
 
         // Function to show book details

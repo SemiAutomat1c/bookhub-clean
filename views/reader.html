@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/reader.css">
     <script src="../assets/js/theme.js"></script>
+    <script src="../src/js/auth.js"></script>
 </head>
 <body>
    <!-- Header -->
@@ -58,13 +59,57 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Load book content
-        const urlParams = new URLSearchParams(window.location.search);
-        const bookId = urlParams.get('id');
+        // Check authentication first
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+            return;
+        }
+
+        // Update header based on auth state
+        updateAuthUI();
+
+        // Get current book from localStorage
+        const currentBook = JSON.parse(localStorage.getItem('currentBook'));
         const bookViewer = document.getElementById('bookViewer');
 
-        if (bookId) {
+        if (currentBook && currentBook.id) {
+            // Update page title
+            document.title = `${currentBook.title} - BookHub Reader`;
+
+            // Load sample chapter content for now
             bookViewer.src = `../books/samples/sample_chapter.html`;
+
+            // Update reading progress if in currently-reading list
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            const currentlyReading = readingList['currently-reading'] || [];
+            const bookInList = currentlyReading.find(b => b.id === currentBook.id);
+
+            if (!bookInList && currentlyReading.length < 5) {
+                // If book is not in currently-reading and there's space, add it
+                if (confirm('Add this book to your "Currently Reading" list?')) {
+                    // Remove from other lists if present
+                    ['want-to-read', 'completed'].forEach(list => {
+                        const index = (readingList[list] || []).findIndex(b => b.id === currentBook.id);
+                        if (index !== -1) {
+                            readingList[list].splice(index, 1);
+                        }
+                    });
+
+                    // Add to currently-reading
+                    if (!readingList['currently-reading']) {
+                        readingList['currently-reading'] = [];
+                    }
+                    readingList['currently-reading'].push({
+                        ...currentBook,
+                        progress: 0
+                    });
+                    localStorage.setItem('readingList', JSON.stringify(readingList));
+                }
+            }
+        } else {
+            // No book selected, redirect to home
+            window.location.href = 'index.html';
         }
 
         // Handle iframe theme syncing
@@ -93,6 +138,30 @@
             }
         });
     });
+
+    // Function to update UI based on authentication state
+    function updateAuthUI() {
+        const authToken = localStorage.getItem('authToken');
+        const protectedElements = document.querySelectorAll('.protected-feature');
+        const signedOutElements = document.querySelectorAll('.signed-out-only');
+
+        if (authToken) {
+            // User is signed in
+            protectedElements.forEach(el => el.style.display = '');
+            signedOutElements.forEach(el => el.style.display = 'none');
+        } else {
+            // User is signed out
+            protectedElements.forEach(el => el.style.display = 'none');
+            signedOutElements.forEach(el => el.style.display = '');
+        }
+    }
+
+    // Function to handle logout
+    function logout() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentBook');
+        window.location.href = 'index.html';
+    }
     </script>
 </body>
 </html>

@@ -85,6 +85,9 @@
         <div class="reading-list-header">
             <h1>My Reading List</h1>
             <p>Track and manage your reading journey</p>
+            <button onclick="clearReadingList()" style="margin-top: 10px; padding: 8px 16px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Clear Reading List
+            </button>
         </div>
 
         <div class="reading-list-tabs">
@@ -130,33 +133,104 @@
     <script src="../src/js/auth.js"></script>
     <script src="../src/js/script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get reading list from localStorage
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+        // Initialize reading list globally
+        let readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+
+        function clearReadingList() {
+            if (confirm('Are you sure you want to clear your entire reading list? This cannot be undone.')) {
+                localStorage.removeItem('readingList');
+                readingList = {};
+                location.reload();
+            }
+        }
+
+        // Function to move book between lists
+        function moveBook(bookId, currentList, newList) {
+            const bookIndex = readingList[currentList].findIndex(b => b.id === bookId);
             
-            // Function to display books in a list
-            function displayBooks(listId, books) {
-                const container = document.getElementById(listId);
-                const emptyState = document.querySelector('.empty-state');
-                
-                if (!books || books.length === 0) {
-                    container.innerHTML = '';
-                    if (Object.values(readingList).every(list => !list || list.length === 0)) {
-                        emptyState.style.display = 'block';
-                    }
-                    return;
+            if (bookIndex === -1) return;
+            
+            // Initialize the new list if it doesn't exist
+            if (!readingList[newList]) {
+                readingList[newList] = [];
+            }
+            
+            // Move the book to the new list
+            const book = readingList[currentList][bookIndex];
+            readingList[currentList].splice(bookIndex, 1);
+            
+            // If moving to currently-reading, add progress property
+            if (newList === 'currently-reading') {
+                book.progress = 0;
+            }
+            
+            readingList[newList].push(book);
+            
+            // Save the updated reading list
+            localStorage.setItem('readingList', JSON.stringify(readingList));
+            
+            // Refresh the display
+            displayBooks(currentList, readingList[currentList]);
+            displayBooks(newList, readingList[newList]);
+
+            // If moving to currently-reading, start reading
+            if (newList === 'currently-reading') {
+                readBook(bookId);
+            }
+        }
+
+        // Function to remove book from list
+        function removeBook(bookId, listId) {
+            if (!confirm('Are you sure you want to remove this book from your list?')) return;
+            
+            const bookIndex = readingList[listId].findIndex(b => b.id === bookId);
+            
+            if (bookIndex !== -1) {
+                readingList[listId].splice(bookIndex, 1);
+                localStorage.setItem('readingList', JSON.stringify(readingList));
+                displayBooks(listId, readingList[listId]);
+            }
+        }
+
+        // Function to update reading progress
+        function updateProgress(bookId) {
+            const book = readingList['currently-reading'].find(b => b.id === bookId);
+            
+            if (!book) return;
+            
+            const newProgress = prompt('Enter reading progress (0-100):', book.progress || '0');
+            if (newProgress === null) return;
+            
+            const progress = Math.min(100, Math.max(0, parseInt(newProgress) || 0));
+            book.progress = progress;
+            localStorage.setItem('readingList', JSON.stringify(readingList));
+            displayBooks('currently-reading', readingList['currently-reading']);
+        }
+
+        // Function to display books in a list
+        function displayBooks(listId, books) {
+            const container = document.getElementById(listId);
+            const emptyState = document.querySelector('.empty-state');
+            
+            if (!books || books.length === 0) {
+                container.innerHTML = '';
+                if (Object.values(readingList).every(list => !list || list.length === 0)) {
+                    emptyState.style.display = 'block';
                 }
-                
-                emptyState.style.display = 'none';
-                container.innerHTML = books.map(book => `
-                    <div class="book-card" data-book-id="${book.id}">
-                        <img src="${book.cover || 'https://cdn-icons-png.flaticon.com/512/3145/3145765.png'}" 
-                             alt="${book.title}" 
-                             class="book-cover"
-                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/3145/3145765.png'">
-                        <div class="book-info">
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            container.innerHTML = books.map(book => `
+                <div class="book-card" data-book-id="${book.id}">
+                    <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" 
+                         alt="${book.title}" 
+                         class="book-cover"
+                         onerror="this.src='../assets/images/default-cover.jpg'">
+                    <div class="book-info">
+                        <div>
                             <h3 class="book-title">${book.title}</h3>
-                            <p class="book-author">${book.author}</p>
+                            <p class="book-author">by ${book.author}</p>
                             ${listId === 'currently-reading' ? `
                                 <div class="reading-progress">
                                     <div class="progress-bar">
@@ -165,114 +239,96 @@
                                     <span class="progress-text">${book.progress || 0}% complete</span>
                                 </div>
                             ` : ''}
-                            <div class="book-actions">
-                                ${listId === 'currently-reading' ? `
-                                    <button class="update-progress" onclick="updateProgress('${book.id}')">
-                                        <i class="fas fa-tasks"></i>
-                                        Update Progress
-                                    </button>
-                                ` : ''}
-                                <button class="move-book" onclick="moveBook('${book.id}', '${listId}')">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    Move to
+                        </div>
+                        <div class="card-actions">
+                            ${listId === 'currently-reading' ? `
+                                <button class="move-btn" onclick="readBook('${book.id}')">
+                                    <i class="fas fa-book-reader"></i>
+                                    Read
                                 </button>
-                                <button class="remove-book" onclick="removeBook('${book.id}', '${listId}')">
-                                    <i class="fas fa-trash"></i>
-                                    Remove
+                                <button class="move-btn" onclick="updateProgress('${book.id}')">
+                                    <i class="fas fa-tasks"></i>
+                                    Update Progress
                                 </button>
-                            </div>
+                                <button class="move-btn" onclick="moveBook('${book.id}', 'currently-reading', 'completed')">
+                                    <i class="fas fa-check"></i>
+                                    Mark as Complete
+                                </button>
+                            ` : listId === 'want-to-read' ? `
+                                <button class="move-btn" onclick="moveBook('${book.id}', 'want-to-read', 'currently-reading')">
+                                    <i class="fas fa-book-open"></i>
+                                    Start Reading
+                                </button>
+                            ` : `
+                                <button class="move-btn" onclick="readBook('${book.id}')">
+                                    <i class="fas fa-book-reader"></i>
+                                    Read Again
+                                </button>
+                                <button class="move-btn" onclick="moveBook('${book.id}', 'completed', 'currently-reading')">
+                                    <i class="fas fa-redo"></i>
+                                    Start Over
+                                </button>
+                            `}
+                            <button class="remove-btn" onclick="removeBook('${book.id}', '${listId}')">
+                                <i class="fas fa-trash"></i>
+                                Remove
+                            </button>
                         </div>
                     </div>
-                `).join('');
+                </div>
+            `).join('');
+        }
+
+        // Function to read a book
+        function readBook(bookId) {
+            const book = [
+                ...(readingList['currently-reading'] || []),
+                ...(readingList['want-to-read'] || []),
+                ...(readingList['completed'] || [])
+            ].find(b => b.id === bookId);
+
+            if (!book) {
+                console.error('Book not found');
+                return;
             }
 
+            // Save current book to localStorage
+            localStorage.setItem('currentBook', JSON.stringify(book));
+            
+            // Redirect to reader page
+            window.location.href = 'reader.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize empty lists if they don't exist
+            if (!readingList['currently-reading']) readingList['currently-reading'] = [];
+            if (!readingList['want-to-read']) readingList['want-to-read'] = [];
+            if (!readingList['completed']) readingList['completed'] = [];
+            
             // Display books for each list
             displayBooks('currently-reading', readingList['currently-reading']);
             displayBooks('want-to-read', readingList['want-to-read']);
             displayBooks('completed', readingList['completed']);
 
-            // Handle tab switching
+            // Tab switching functionality
             const tabs = document.querySelectorAll('.tab-button');
             const lists = document.querySelectorAll('.book-list');
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
+                    const targetList = tab.dataset.list;
+                    
                     // Update active tab
                     tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-
-                    // Show corresponding list
-                    const listId = tab.dataset.list;
+                    
+                    // Show/hide corresponding lists
                     lists.forEach(list => {
-                        list.classList.remove('active');
-                        if (list.id === listId) {
-                            list.classList.add('active');
-                        }
+                        list.style.display = list.id === targetList ? 'grid' : 'none';
                     });
                 });
             });
         });
-
-        // Function to update reading progress
-        function updateProgress(bookId) {
-            const progress = prompt('Enter progress (0-100):', '0');
-            if (progress === null) return;
-
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            const book = readingList['currently-reading'].find(b => b.id === bookId);
-            
-            if (book) {
-                book.progress = Math.min(100, Math.max(0, parseInt(progress) || 0));
-                localStorage.setItem('readingList', JSON.stringify(readingList));
-                location.reload();
-            }
-        }
-
-        // Function to move book between lists
-        function moveBook(bookId, currentList) {
-            const lists = {
-                'currently-reading': 'Currently Reading',
-                'want-to-read': 'Want to Read',
-                'completed': 'Completed'
-            };
-            
-            const options = Object.entries(lists)
-                .filter(([key]) => key !== currentList)
-                .map(([key, label]) => `<option value="${key}">${label}</option>`)
-                .join('');
-            
-            const newList = prompt(`Move to:\n${Object.entries(lists)
-                .filter(([key]) => key !== currentList)
-                .map(([key, label]) => `- ${label}`)
-                .join('\n')}`);
-            
-            if (!newList || !lists[newList]) return;
-            
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            const bookIndex = readingList[currentList].findIndex(b => b.id === bookId);
-            
-            if (bookIndex !== -1) {
-                const book = readingList[currentList].splice(bookIndex, 1)[0];
-                if (!readingList[newList]) readingList[newList] = [];
-                readingList[newList].push(book);
-                localStorage.setItem('readingList', JSON.stringify(readingList));
-                location.reload();
-            }
-        }
-
-        // Function to remove book from list
-        function removeBook(bookId, listId) {
-            if (!confirm('Are you sure you want to remove this book from your list?')) return;
-            
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            const bookIndex = readingList[listId].findIndex(b => b.id === bookId);
-            
-            if (bookIndex !== -1) {
-                readingList[listId].splice(bookIndex, 1);
-                localStorage.setItem('readingList', JSON.stringify(readingList));
-                location.reload();
-            }
-        }
     </script>
 </body>
 </html>

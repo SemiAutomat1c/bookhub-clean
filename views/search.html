@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/modal.css">
+    <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -50,36 +51,6 @@
             </button>
         </nav>
     </header>
-
-    <script>
-    // Theme toggle functionality
-    document.addEventListener('DOMContentLoaded', () => {
-        const darkModeToggle = document.querySelector('.dark-mode-toggle');
-        
-        // Function to toggle dark mode
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-        }
-
-        // Initialize theme from localStorage
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-        }
-
-        // Add click event to dark mode toggle
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', toggleDarkMode);
-        }
-
-        // Initialize theme on page load
-        initTheme();
-    });
-    </script>
 
     <main>
         <section class="search-section">
@@ -165,125 +136,207 @@
         </section>
     </main>
 
+    <!-- Book Details Modal -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="book-details">
+                <div class="book-cover">
+                    <img id="modalBookCover" src="" alt="Book Cover">
+                </div>
+                <div class="book-info">
+                    <h2 id="modalBookTitle"></h2>
+                    <p class="author">By <span id="modalBookAuthor"></span></p>
+                    <div class="rating">
+                        <i class="fas fa-star"></i>
+                        <span id="modalBookRating">0</span>/5 
+                        (<span id="modalTotalRatings">0</span> ratings)
+                    </div>
+                    <p class="genre">Genre: <span id="modalBookGenre"></span></p>
+                    <p class="description" id="modalBookDescription"></p>
+                    <div class="additional-info">
+                        <p><i class="fas fa-book"></i> Books by author: <span id="modalAuthorBooks">0</span></p>
+                        <p><i class="fas fa-chart-line"></i> Genre average rating: <span id="modalGenreRating">0</span>/5</p>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="primary-btn read-btn">
+                            <i class="fas fa-book-reader"></i>
+                            Read Now
+                        </button>
+                        <button class="secondary-btn add-to-list-btn">
+                            <i class="fas fa-plus"></i>
+                            Add to List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../src/js/auth.js"></script>
     <script src="../src/js/script.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.querySelector('.search-input');
-            const searchButton = document.querySelector('.search-button');
-            const resultsGrid = document.getElementById('search-results-grid');
-            const sortSelect = document.getElementById('sort-select');
-            const applyFiltersBtn = document.getElementById('apply-filters');
+        // Initialize variables and elements
+        const searchInput = document.querySelector('.search-input');
+        const searchButton = document.querySelector('.search-button');
+        const resultsGrid = document.getElementById('search-results-grid');
+        const sortSelect = document.getElementById('sort-select');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        const modal = document.getElementById('bookModal');
+        const closeBtn = document.querySelector('.close');
+        const readBtn = document.querySelector('.read-btn');
+        let currentBookId = null;
 
-            // Function to perform search
-            function performSearch() {
-                const query = searchInput ? searchInput.value.trim() : '';
-                const genre = document.getElementById('genre').value;
-                const language = document.getElementById('language').value;
-                const year = document.getElementById('year').value;
-                const rating = document.getElementById('rating').value;
-                const availability = document.getElementById('availability').value;
-                const sortBy = sortSelect.value;
+        // Close modal when clicking X
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+        }
 
-                // Get books from localStorage or fetch from server
-                fetch('../books.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        let results = filterBooks(data.books, query, {
-                            genre,
-                            language,
-                            year,
-                            rating,
-                            availability,
-                            sortBy
-                        });
-                        displayResults(results);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching books:', error);
-                        resultsGrid.innerHTML = `
-                            <div class="error-message">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <p>Sorry, we couldn't load the books right now. Please try again later.</p>
-                            </div>
-                        `;
-                    });
+        // Close modal when clicking outside
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
             }
+        };
 
-            // Function to filter books based on search criteria
-            function filterBooks(books, query, filters) {
-                return books.filter(book => {
-                    const matchesQuery = !query || 
-                        book.title.toLowerCase().includes(query.toLowerCase()) ||
-                        book.author.toLowerCase().includes(query.toLowerCase());
-                    
-                    const matchesGenre = filters.genre === 'all' || book.genre === filters.genre;
-                    const matchesLanguage = filters.language === 'all' || book.language === filters.language;
-                    const matchesYear = filters.year === 'all' || book.published === filters.year;
-                    const matchesRating = book.rating >= parseFloat(filters.rating);
-                    const matchesAvailability = filters.availability === 'all' || 
-                        (filters.availability === 'ebook' && book.hasEbook) ||
-                        (filters.availability === 'audiobook' && book.hasAudiobook);
-
-                    return matchesQuery && matchesGenre && matchesLanguage && 
-                           matchesYear && matchesRating && matchesAvailability;
-                }).sort((a, b) => {
-                    switch (filters.sortBy) {
-                        case 'rating':
-                            return b.rating - a.rating;
-                        case 'date':
-                            return parseInt(b.published) - parseInt(a.published);
-                        case 'title':
-                            return a.title.localeCompare(b.title);
-                        default:
-                            return 0;
-                    }
-                });
-            }
-
-            // Function to display search results
-            function displayResults(books) {
-                if (books.length === 0) {
-                    resultsGrid.innerHTML = `
-                        <div class="no-results">
-                            <i class="fas fa-search"></i>
-                            <p>No books found matching your criteria</p>
-                        </div>
-                    `;
-                    return;
+        // Handle Read Now button
+        if (readBtn) {
+            readBtn.addEventListener('click', () => {
+                if (currentBookId) {
+                    window.location.href = `reader.html?id=${currentBookId}`;
                 }
+            });
+        }
 
-                resultsGrid.innerHTML = books.map(book => createBookCard(book)).join('');
+        // Function to show book details
+        window.showBookDetails = async function(bookId) {
+            currentBookId = bookId;
+            try {
+                const response = await fetch('../get_books.php');
+                const data = await response.json();
+                const book = data.find(b => b.book_id === bookId);
+                
+                if (book) {
+                    document.getElementById('modalBookCover').src = book.cover_image || '../assets/images/default-cover.jpg';
+                    document.getElementById('modalBookTitle').textContent = book.title;
+                    document.getElementById('modalBookAuthor').textContent = book.author;
+                    document.getElementById('modalBookRating').textContent = book.average_rating || '0';
+                    document.getElementById('modalTotalRatings').textContent = book.total_ratings || '0';
+                    document.getElementById('modalBookGenre').textContent = book.genre;
+                    document.getElementById('modalBookDescription').textContent = book.description;
+                    document.getElementById('modalAuthorBooks').textContent = book.author_books || '0';
+                    document.getElementById('modalGenreRating').textContent = book.genre_rating || '0';
+                    
+                    modal.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error fetching book details:', error);
             }
+        }
 
-            // Event listeners
-            if (searchInput) {
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') performSearch();
+        // Function to perform search
+        function performSearch() {
+            const query = searchInput ? searchInput.value.trim() : '';
+            const genre = document.getElementById('genre').value;
+            const language = document.getElementById('language').value;
+            const year = document.getElementById('year').value;
+            const rating = document.getElementById('rating').value;
+            const availability = document.getElementById('availability').value;
+            const sortBy = sortSelect.value;
+
+            fetch('../get_books.php')
+                .then(response => response.json())
+                .then(data => {
+                    let results = filterBooks(data, query, {
+                        genre,
+                        language,
+                        year,
+                        rating,
+                        availability,
+                        sortBy
+                    });
+                    displayResults(results);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultsGrid.innerHTML = '<p class="error-message">Error loading books. Please try again later.</p>';
                 });
-            }
-            if (searchButton) {
-                searchButton.addEventListener('click', performSearch);
-            }
-            sortSelect.addEventListener('change', performSearch);
-            applyFiltersBtn.addEventListener('click', performSearch);
+        }
 
-            // Initial search
-            performSearch();
-        });
+        // Function to filter books
+        function filterBooks(books, query, filters) {
+            return books.filter(book => {
+                const matchesQuery = !query || 
+                    book.title.toLowerCase().includes(query.toLowerCase()) ||
+                    book.author.toLowerCase().includes(query.toLowerCase());
+                
+                const matchesGenre = filters.genre === 'all' || book.genre === filters.genre;
+                const matchesLanguage = filters.language === 'all' || book.language === filters.language;
+                const matchesYear = filters.year === 'all' || book.year === filters.year;
+                const matchesRating = book.average_rating >= parseInt(filters.rating);
+                const matchesAvailability = filters.availability === 'all' || 
+                    book.formats && book.formats.includes(filters.availability);
 
+                return matchesQuery && matchesGenre && matchesLanguage && 
+                       matchesYear && matchesRating && matchesAvailability;
+            });
+        }
+
+        // Function to display results
+        function displayResults(books) {
+            if (!resultsGrid) return;
+            
+            if (books.length === 0) {
+                resultsGrid.innerHTML = '<p class="no-results">No books found matching your criteria.</p>';
+                return;
+            }
+
+            resultsGrid.innerHTML = books.map(book => createBookCard(book)).join('');
+        }
+
+        // Function to create book card
         function createBookCard(book) {
             return `
-                <div class="book-card">
-                    <img src="${book.cover}" alt="${book.title}" class="book-cover">
+                <div class="book-card" onclick="showBookDetails('${book.book_id}')">
+                    <div class="book-cover">
+                        <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" alt="${book.title}">
+                    </div>
                     <div class="book-info">
                         <h3 class="book-title">${book.title}</h3>
                         <p class="book-author">${book.author}</p>
+                        <div class="book-rating">
+                            <i class="fas fa-star"></i>
+                            <span>${book.average_rating || '0'}</span>/5
+                        </div>
                     </div>
                 </div>
             `;
         }
+
+        // Event listeners
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        if (searchButton) {
+            searchButton.addEventListener('click', performSearch);
+        }
+
+        if (sortSelect) {
+            sortSelect.addEventListener('change', performSearch);
+        }
+
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', performSearch);
+        }
+
+        // Initial search on page load
+        document.addEventListener('DOMContentLoaded', performSearch);
     </script>
 </body>
 </html>
