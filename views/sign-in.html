@@ -91,10 +91,10 @@
                 <h1 class="sign-in-title">Welcome Back!</h1>
                 <p class="sign-in-subtitle">Sign in to continue your reading journey</p>
             </div>
-            <form class="sign-in-form">
+            <form id="signInForm" class="sign-in-form">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="username" name="email" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -155,6 +155,42 @@
             </form>
         </div>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('signInForm');
+            
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // For demo, just check if fields are not empty
+                if (username && password) {
+                    // Store auth token
+                    localStorage.setItem('authToken', 'demo_token');
+                    
+                    // Store user data
+                    const userData = {
+                        username: username,
+                        email: username + '@example.com', // Demo email
+                        memberSince: new Date().toISOString()
+                    };
+                    localStorage.setItem('userData', JSON.stringify(userData));
+                    
+                    // Get return URL from query params or default to index
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnUrl = urlParams.get('returnUrl') || 'index.html';
+                    
+                    // Redirect
+                    window.location.href = returnUrl;
+                } else {
+                    alert('Please fill in all fields');
+                }
+            });
+        });
+    </script>
 
     <script src="../src/js/script.js"></script>
     <script src="../src/js/auth.js"></script>

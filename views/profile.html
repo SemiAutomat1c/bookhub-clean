@@ -132,20 +132,34 @@
         if (!authToken) {
             window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
         }
-    </script>
-    <script src="../src/js/theme.js"></script>
-    <script src="../src/js/auth.js"></script>
-    <script src="../src/js/script.js"></script>
-    <script>
+
+        // Initialize default user data if not exists
+        if (!localStorage.getItem('userData')) {
+            const defaultUserData = {
+                username: 'User',
+                email: 'Not provided',
+                memberSince: new Date().toISOString()
+            };
+            localStorage.setItem('userData', JSON.stringify(defaultUserData));
+        }
+
         // Load profile data
         document.addEventListener('DOMContentLoaded', () => {
-            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            // Get user data from localStorage
+            const userData = JSON.parse(localStorage.getItem('userData'));
             const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
             
             // Update profile info
-            document.getElementById('username').textContent = userData.name || 'User';
-            document.getElementById('email').textContent = userData.email || '';
-            document.getElementById('memberSince').textContent = userData.memberSince || '';
+            document.getElementById('username').textContent = userData.username;
+            document.getElementById('email').textContent = userData.email;
+            
+            // Format member since date
+            const memberSince = new Date(userData.memberSince);
+            document.getElementById('memberSince').textContent = memberSince.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
             
             // Update reading stats
             document.getElementById('currently-reading-count').textContent = 
@@ -199,7 +213,22 @@
                     </div>
                 </div>
             `).join('') : '<p class="no-activity">No recent activity</p>';
+
+            // Update auth UI
+            updateAuthUI();
         });
+
+        // Function to handle logout
+        function logout() {
+            if (confirm('Are you sure you want to log out?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userData');
+                window.location.href = 'index.html';
+            }
+        }
     </script>
+    <script src="../src/js/theme.js"></script>
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/script.js"></script>
 </body>
 </html>
