@@ -379,6 +379,69 @@
         .secondary-btn:hover {
             background: var(--border-color);
         }
+
+        /* Search suggestions */
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            max-width: 600px;
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .suggestion-item {
+            display: flex;
+            padding: 10px;
+            gap: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .suggestion-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .suggestion-cover {
+            width: 50px;
+            height: 75px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .suggestion-info {
+            flex-grow: 1;
+        }
+
+        .suggestion-title {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .suggestion-author {
+            font-size: 0.9em;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .suggestion-genre {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            font-style: italic;
+        }
     </style>
 
     <!-- Scripts -->

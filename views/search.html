@@ -498,8 +498,10 @@
         }
 
         // Function to perform search
-        async function performSearch() {
-            const query = searchInput.value.trim();
+        async function performSearch(query = null) {
+            // Get query from parameter or input
+            const searchQuery = query || searchInput.value.trim();
+            searchInput.value = searchQuery; // Update input if query came from parameter
             
             try {
                 const response = await fetch('../get_books.php');
@@ -516,7 +518,7 @@
                 };
                 
                 // Apply filters and search
-                const filteredBooks = filterBooks(books, query, filters);
+                const filteredBooks = filterBooks(books, searchQuery, filters);
                 
                 // Sort results
                 const sortBy = sortSelect.value;
@@ -524,6 +526,11 @@
                 
                 // Display results
                 displayResults(sortedBooks);
+
+                // Update URL without reloading
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('q', searchQuery);
+                window.history.pushState({}, '', newUrl);
             } catch (error) {
                 console.error('Error fetching books:', error);
                 resultsGrid.innerHTML = '<p class="error-message">Error loading books. Please try again.</p>';
@@ -625,6 +632,10 @@
         }
 
         // Event listeners
+        document.addEventListener('performSearch', (e) => {
+            performSearch(e.detail);
+        });
+
         if (searchInput) {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performSearch();
@@ -646,8 +657,13 @@
             });
         }
 
-        // Load initial results
-        document.addEventListener('DOMContentLoaded', performSearch);
+        // Initialize search if query parameter exists
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryParam = urlParams.get('q');
+        if (queryParam) {
+            searchInput.value = queryParam;
+            performSearch(queryParam);
+        }
     </script>
 </body>
 </html>
