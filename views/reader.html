@@ -8,19 +8,30 @@
     <link rel="stylesheet" href="../assets/css/styles.css">
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/reader.css">
+    <script src="../assets/js/theme.js"></script>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <a href="index.html" class="site-title">
-            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
-            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
-            BookHub
-        </a>
-        <nav class="header-nav">
-            <a href="index.html" class="nav-button">Home</a>
-            <a href="search.html" class="nav-button">Search</a>
-            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+   <!-- Header -->
+   <header>
+    <a href="index.html" class="site-title">
+        <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+        <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+        BookHub
+    </a>
+    <div class="search-container">
+        <div class="search-input-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+            <button class="search-button" onclick="performSearch()">
+                <i class="fas fa-search"></i>
+            </button>
+            <div class="search-suggestions"></div>
+        </div>
+    </div>
+    <nav class="header-nav">
+        <a href="index.html" class="nav-button">Home</a>
+        <a href="search.html" class="nav-button">Search</a>
+        <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+        <div class="auth-buttons">
             <div class="profile-dropdown protected-feature">
                 <button class="profile-button nav-button">
                     <i class="fas fa-user"></i>
@@ -32,12 +43,13 @@
                 </div>
             </div>
             <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
-            <button class="dark-mode-toggle">
-                <i class="fas fa-moon"></i>
-                <i class="fas fa-sun"></i>
-            </button>
-        </nav>
-    </header>
+        </div>
+        <button class="dark-mode-toggle">
+            <i class="fas fa-moon"></i>
+            <i class="fas fa-sun"></i>
+        </button>
+    </nav>
+</header>
 
     <!-- Main Content -->
     <main class="reader-main">
@@ -45,33 +57,32 @@
     </main>
 
     <script>
-    // Theme toggle functionality
     document.addEventListener('DOMContentLoaded', () => {
-        const darkModeToggle = document.querySelector('.dark-mode-toggle');
+        // Load book content
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookId = urlParams.get('id');
         const bookViewer = document.getElementById('bookViewer');
-        
-        // Function to toggle dark mode
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
+
+        if (bookId) {
+            bookViewer.src = `../books/samples/sample_chapter.html`;
+        }
+
+        // Handle iframe theme syncing
+        const syncIframeTheme = () => {
             const isDarkMode = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-            // Send theme to iframe
             bookViewer.contentWindow.postMessage(isDarkMode ? 'dark' : 'light', '*');
-        }
+        };
 
-        // Initialize theme from localStorage
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-                // Send theme to iframe
-                bookViewer.contentWindow.postMessage('dark', '*');
-            }
-        }
+        // Sync theme when iframe loads
+        bookViewer.onload = syncIframeTheme;
 
-        // Add click event to dark mode toggle
+        // Listen for theme changes
+        const darkModeToggle = document.querySelector('.dark-mode-toggle');
         if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', toggleDarkMode);
+            darkModeToggle.addEventListener('click', () => {
+                // Wait for theme.js to update the theme
+                setTimeout(syncIframeTheme, 0);
+            });
         }
 
         // Listen for theme check from iframe
@@ -81,15 +92,6 @@
                 event.source.postMessage(isDarkMode ? 'dark' : 'light', '*');
             }
         });
-
-        // Load book content
-        const urlParams = new URLSearchParams(window.location.search);
-        const bookId = urlParams.get('id');
-        if (bookId) {
-            bookViewer.src = `../books/samples/sample_chapter.html`;
-            // Initialize theme after iframe loads
-            bookViewer.onload = initTheme;
-        }
     });
     </script>
 </body>

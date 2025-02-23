@@ -31,17 +31,19 @@
             <a href="index.html" class="nav-button">Home</a>
             <a href="search.html" class="nav-button active">Search</a>
             <a href="reading-list.html" class="nav-button protected-feature">My List</a>
-            <div class="profile-dropdown protected-feature">
-                <button class="profile-button nav-button">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
-                </button>
-                <div class="dropdown-content">
-                    <a href="profile.html">View Profile</a>
-                    <a href="#" onclick="logout()">Logout</a>
+            <div class="auth-buttons">
+                <div class="profile-dropdown protected-feature">
+                    <button class="profile-button nav-button">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="profile.html">View Profile</a>
+                        <a href="#" onclick="logout()">Logout</a>
+                    </div>
                 </div>
+                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
             </div>
-            <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
                 <i class="fas fa-sun"></i>

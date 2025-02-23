@@ -42,20 +42,22 @@ header {
     margin-right: 10px; /* Consistent spacing */
 }
 
-.logo.light-logo {
-    display: block;
-}
-
-.logo.dark-logo {
-    display: none;
-}
-
+/* Logo dark mode styles */
 body.dark-mode .logo.light-logo {
     display: none;
 }
 
 body.dark-mode .logo.dark-logo {
-    display: inline-block;
+    display: block;
+}
+
+/* Light mode (default) logo styles */
+body:not(.dark-mode) .logo.light-logo {
+    display: block;
+}
+
+body:not(.dark-mode) .logo.dark-logo {
+    display: none;
 }
 
 /* Search Container */
@@ -163,20 +165,21 @@ body.dark-mode .logo.dark-logo {
     font-size: 1.2rem;
 }
 
+/* Dark mode toggle button icons */
+.dark-mode-toggle .fa-moon {
+    display: inline-block;
+}
+
 .dark-mode-toggle .fa-sun {
     display: none;
 }
 
-.dark-mode-toggle .fa-moon {
-    display: block;
+body.dark-mode .dark-mode-toggle .fa-moon {
+    display: none;
 }
 
 body.dark-mode .dark-mode-toggle .fa-sun {
-    display: block;
-}
-
-body.dark-mode .dark-mode-toggle .fa-moon {
-    display: none;
+    display: inline-block;
 }
 
 /* Dark Mode Specific Styles */

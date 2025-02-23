@@ -12,26 +12,36 @@
 <body>
     <!-- Header -->
     <header>
-        <a href="../index.html" class="site-title">
+        <a href="index.html" class="site-title">
             <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
             <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
             BookHub
         </a>
         <div class="search-container">
             <div class="search-input-wrapper">
-                <input type="text" class="search-input" placeholder="Search books...">
-                <button class="search-button">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                <button class="search-button" onclick="performSearch()">
                     <i class="fas fa-search"></i>
                 </button>
+                <div class="search-suggestions"></div>
             </div>
         </div>
         <nav class="header-nav">
-            <a href="../index.html" class="nav-button">Home</a>
+            <a href="index.html" class="nav-button">Home</a>
             <a href="search.html" class="nav-button">Search</a>
             <a href="reading-list.html" class="nav-button protected-feature active">My List</a>
             <div class="auth-buttons">
+                <div class="profile-dropdown protected-feature">
+                    <button class="profile-button nav-button">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="profile.html">View Profile</a>
+                        <a href="#" onclick="logout()">Logout</a>
+                    </div>
+                </div>
                 <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
-                <a href="profile.html" class="nav-button protected-feature">Profile</a>
             </div>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
@@ -39,6 +49,36 @@
             </button>
         </nav>
     </header>
+
+    <script>
+    // Theme toggle functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        const darkModeToggle = document.querySelector('.dark-mode-toggle');
+        
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Add click event to dark mode toggle
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+
+        // Initialize theme on page load
+        initTheme();
+    });
+    </script>
 
     <!-- Main Content -->
     <main class="reading-list-container">
