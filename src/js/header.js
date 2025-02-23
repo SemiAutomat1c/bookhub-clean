@@ -1,7 +1,8 @@
 // Function to check if user is logged in
 function checkLoginStatus() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const isLoggedIn = localStorage.getItem('username') !== null && localStorage.getItem('authToken') !== null;
     document.body.classList.toggle('logged-in', isLoggedIn);
+    return isLoggedIn;
 }
 
 // Function to handle search
@@ -24,7 +25,8 @@ function performSearch() {
 
 // Function to handle logout
 function logout() {
-    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
     localStorage.removeItem('user');
     checkLoginStatus();
     window.location.href = '/bookhub/views/index.html';

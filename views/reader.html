@@ -62,55 +62,70 @@
         // Check authentication first
         const authToken = localStorage.getItem('authToken');
         if (!authToken) {
-            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
             return;
         }
 
+        // Get book ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookId = urlParams.get('book_id');
+        
+        if (!bookId) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        // Get book details
+        fetch(`../get_books.php`)
+            .then(response => response.json())
+            .then(books => {
+                const book = books.find(b => b.book_id === bookId);
+                if (!book) {
+                    throw new Error('Book not found');
+                }
+
+                // Store current book
+                localStorage.setItem('currentBook', JSON.stringify({
+                    id: book.book_id,
+                    title: book.title,
+                    author: book.author,
+                    cover_image: book.cover_image
+                }));
+
+                // Update page title
+                document.title = `${book.title} - BookHub Reader`;
+
+                // Load book content
+                const bookViewer = document.getElementById('bookViewer');
+                bookViewer.src = `../books/samples/sample_chapter.html`;
+
+                // Update reading list
+                const username = localStorage.getItem('username');
+                const readingList = JSON.parse(localStorage.getItem(`${username}_reading_list`)) || {
+                    want_to_read: [],
+                    currently_reading: [],
+                    completed: []
+                };
+
+                // Check if book is not in currently reading
+                if (!readingList.currently_reading.includes(bookId)) {
+                    // Remove from other lists if present
+                    readingList.want_to_read = readingList.want_to_read.filter(id => id !== bookId);
+                    readingList.completed = readingList.completed.filter(id => id !== bookId);
+                    
+                    // Add to currently reading
+                    readingList.currently_reading.push(bookId);
+                    localStorage.setItem(`${username}_reading_list`, JSON.stringify(readingList));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading book. Redirecting to home page...');
+                window.location.href = 'index.html';
+            });
+
         // Update header based on auth state
         updateAuthUI();
-
-        // Get current book from localStorage
-        const currentBook = JSON.parse(localStorage.getItem('currentBook'));
-        const bookViewer = document.getElementById('bookViewer');
-
-        if (currentBook && currentBook.id) {
-            // Update page title
-            document.title = `${currentBook.title} - BookHub Reader`;
-
-            // Load sample chapter content for now
-            bookViewer.src = `../books/samples/sample_chapter.html`;
-
-            // Update reading progress if in currently-reading list
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            const currentlyReading = readingList['currently-reading'] || [];
-            const bookInList = currentlyReading.find(b => b.id === currentBook.id);
-
-            if (!bookInList && currentlyReading.length < 5) {
-                // If book is not in currently-reading and there's space, add it
-                if (confirm('Add this book to your "Currently Reading" list?')) {
-                    // Remove from other lists if present
-                    ['want-to-read', 'completed'].forEach(list => {
-                        const index = (readingList[list] || []).findIndex(b => b.id === currentBook.id);
-                        if (index !== -1) {
-                            readingList[list].splice(index, 1);
-                        }
-                    });
-
-                    // Add to currently-reading
-                    if (!readingList['currently-reading']) {
-                        readingList['currently-reading'] = [];
-                    }
-                    readingList['currently-reading'].push({
-                        ...currentBook,
-                        progress: 0
-                    });
-                    localStorage.setItem('readingList', JSON.stringify(readingList));
-                }
-            }
-        } else {
-            // No book selected, redirect to home
-            window.location.href = 'index.html';
-        }
 
         // Handle iframe theme syncing
         const syncIframeTheme = () => {

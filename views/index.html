@@ -196,23 +196,73 @@
                 <div class="book-info">
                     <h2 id="modalBookTitle"></h2>
                     <p class="author">By <span id="modalBookAuthor"></span></p>
-                    <div class="rating">
-                        <i class="fas fa-star"></i>
-                        <span id="modalBookRating">0</span>/5 
-                        (<span id="modalTotalRatings">0</span> ratings)
+                    
+                    <div class="book-metadata">
+                        <div class="metadata-row">
+                            <div class="metadata-item">
+                                <i class="fas fa-star"></i>
+                                <strong>Rating:</strong>
+                                <span><span id="modalBookRating">0</span>/5</span>
+                                (<span id="modalTotalRatings">0</span> ratings)
+                            </div>
+                            <div class="metadata-item">
+                                <i class="fas fa-book"></i>
+                                <strong>Genre:</strong>
+                                <span id="modalBookGenre"></span>
+                            </div>
+                        </div>
+                        <div class="metadata-row">
+                            <div class="metadata-item">
+                                <i class="fas fa-language"></i>
+                                <strong>Language:</strong>
+                                <span id="modalBookLanguage"></span>
+                            </div>
+                            <div class="metadata-item">
+                                <i class="fas fa-calendar"></i>
+                                <strong>Published:</strong>
+                                <span id="modalBookYear"></span>
+                            </div>
+                        </div>
+                        <div class="metadata-row">
+                            <div class="metadata-item">
+                                <i class="fas fa-file-alt"></i>
+                                <strong>Format:</strong>
+                                <span id="modalBookFormat"></span>
+                            </div>
+                            <div class="metadata-item">
+                                <i class="fas fa-clock"></i>
+                                <strong>Reading Time:</strong>
+                                <span id="modalReadingTime"></span>
+                            </div>
+                        </div>
                     </div>
-                    <p class="genre">Genre: <span id="modalBookGenre"></span></p>
-                    <p class="description" id="modalBookDescription"></p>
+
+                    <div class="book-description">
+                        <h3>Description</h3>
+                        <p id="modalBookDescription"></p>
+                    </div>
+
                     <div class="additional-info">
-                        <p><i class="fas fa-book"></i> Books by author: <span id="modalAuthorBooks">0</span></p>
-                        <p><i class="fas fa-chart-line"></i> Genre average rating: <span id="modalGenreRating">0</span>/5</p>
+                        <div class="info-row">
+                            <div class="info-item">
+                                <i class="fas fa-user-edit"></i>
+                                <strong>Books by Author:</strong>
+                                <span id="modalAuthorBooks">0</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-chart-line"></i>
+                                <strong>Genre Rating:</strong>
+                                <span id="modalGenreRating">0</span>/5
+                            </div>
+                        </div>
                     </div>
+
                     <div class="modal-actions">
-                        <button class="primary-btn read-btn">
+                        <button class="primary-btn read-btn" onclick="startReading(currentBookId)">
                             <i class="fas fa-book-reader"></i>
                             Read Now
                         </button>
-                        <button class="secondary-btn add-to-list-btn">
+                        <button class="secondary-btn add-to-list-btn" onclick="addToReadingList(currentBookId)">
                             <i class="fas fa-plus"></i>
                             Add to List
                         </button>
@@ -221,6 +271,115 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .book-metadata {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .metadata-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .metadata-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metadata-item i {
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        .book-description {
+            margin: 1.5rem 0;
+        }
+
+        .book-description h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .additional-info {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .info-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-item i {
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .primary-btn {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background: var(--primary-color-dark);
+        }
+
+        .secondary-btn {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .secondary-btn:hover {
+            background: var(--border-color);
+        }
+    </style>
 
     <!-- Scripts -->
     <script src="../src/js/auth.js"></script>
@@ -308,105 +467,128 @@
             }
         }
 
-        // Handle Read Now button
-        document.querySelector('.read-btn').addEventListener('click', () => {
-            if (currentBookId) {
-                window.location.href = `reader.html?id=${currentBookId}`;
-            }
-        });
+        // Function to check if user is logged in
+        function isLoggedIn() {
+            const status = checkLoginStatus();
+            console.log('Login status:', status);
+            console.log('Username:', localStorage.getItem('username'));
+            console.log('AuthToken:', localStorage.getItem('authToken'));
+            return status;
+        }
+
+        // Function to start reading a book
+        function startReading(bookId) {
+            if (!bookId) return;
+            window.location.href = `reader.html?book_id=${bookId}`;
+        }
 
         // Function to add book to reading list
         function addToReadingList(bookId) {
-            if (!localStorage.getItem('authToken')) {
-                window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+            const username = localStorage.getItem('username');
+            const readingList = JSON.parse(localStorage.getItem(`${username}_reading_list`)) || {
+                want_to_read: [],
+                currently_reading: [],
+                completed: []
+            };
+
+            // Check if book is already in any list
+            const allBooks = [
+                ...readingList.want_to_read,
+                ...readingList.currently_reading,
+                ...readingList.completed
+            ];
+
+            if (allBooks.includes(bookId)) {
+                showMessage('This book is already in your reading list!');
                 return;
             }
 
-            fetch(`../get_book_details.php?book_id=${bookId}`)
-                .then(response => response.json())
-                .then(book => {
-                    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-                    
-                    if (!readingList['want-to-read']) {
-                        readingList['want-to-read'] = [];
-                    }
-                    
-                    // Check if book is already in any list
-                    const allBooks = [
-                        ...(readingList['currently-reading'] || []),
-                        ...(readingList['want-to-read'] || []),
-                        ...(readingList['completed'] || [])
-                    ];
-                    
-                    if (allBooks.some(b => b.id === bookId)) {
-                        alert('This book is already in your reading list!');
-                        return;
-                    }
-                    
-                    // Add all necessary book information
-                    readingList['want-to-read'].push({
-                        id: book.book_id,
-                        title: book.title,
-                        author: book.author,
-                        cover_image: book.cover_image,
-                        description: book.description,
-                        genre: book.genre,
-                        average_rating: book.average_rating,
-                        total_ratings: book.total_ratings
-                    });
-                    
-                    localStorage.setItem('readingList', JSON.stringify(readingList));
-                    alert('Book added to your reading list!');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error adding book to reading list. Please try again.');
-                });
+            // Add to want_to_read by default
+            readingList.want_to_read.push(bookId);
+            localStorage.setItem(`${username}_reading_list`, JSON.stringify(readingList));
+            
+            showMessage('Book added to your reading list!');
+            modal.style.display = 'none';
         }
 
-        // Handle Add to List button
-        document.querySelector('.add-to-list-btn').addEventListener('click', () => {
-            if (!currentBookId) return;
+        // Function to show login prompt
+        function showLoginPrompt() {
+            const shouldLogin = confirm('You need to be logged in to use this feature. Would you like to log in now?');
+            if (shouldLogin) {
+                window.location.href = 'sign-in.html';
+            }
+        }
+
+        // Function to show message
+        function showMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.textContent = message;
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '20px';
+            messageDiv.style.left = '50%';
+            messageDiv.style.transform = 'translateX(-50%)';
+            messageDiv.style.padding = '10px 20px';
+            messageDiv.style.backgroundColor = 'var(--primary-color)';
+            messageDiv.style.color = 'white';
+            messageDiv.style.borderRadius = '5px';
+            messageDiv.style.zIndex = '1000';
             
-            addToReadingList(currentBookId);
-        });
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
 
         // Function to show book details
-        function showBookDetails(bookId) {
-            fetch(`../get_book_details.php?book_id=${bookId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(book => {
-                    currentBookId = bookId;
+        async function showBookDetails(bookId) {
+            try {
+                const response = await fetch('../get_books.php');
+                const books = await response.json();
+                const book = books.find(b => b.book_id === bookId);
+                
+                if (book) {
+                    // Safely get book properties with defaults
+                    const title = book.title || 'Untitled';
+                    const author = book.author || 'Unknown Author';
+                    const cover_image = book.cover_image || '../assets/images/default-cover.jpg';
+                    const rating = parseFloat(book.rating || 0).toFixed(1);
+                    const total_ratings = book.total_ratings || 0;
+                    const genre = book.genre || 'Uncategorized';
+                    const description = book.description || 'No description available.';
+                    const author_books = book.author_books || 1;
+                    const genre_rating = parseFloat(book.genre_rating || rating).toFixed(1);
+                    const language = book.language || 'Not specified';
+                    const publication_year = book.publication_year || 'Not specified';
+                    const format = book.format || 'E-Book';
+                    const reading_time = book.reading_time || 'Varies';
 
-                    // Update modal content
-                    document.getElementById('modalBookCover').src = book.cover_image || '../assets/images/default-cover.jpg';
-                    document.getElementById('modalBookTitle').textContent = book.title;
-                    document.getElementById('modalBookAuthor').textContent = book.author;
-                    document.getElementById('modalBookRating').textContent = 
-                        parseFloat(book.average_rating || 0).toFixed(1);
-                    document.getElementById('modalTotalRatings').textContent = 
-                        book.total_ratings || 0;
-                    document.getElementById('modalBookGenre').textContent = 
-                        book.genre || 'Not specified';
-                    document.getElementById('modalBookDescription').textContent = 
-                        book.description || 'No description available.';
-                    document.getElementById('modalAuthorBooks').textContent = 
-                        book.author_books_count || '0';
-                    document.getElementById('modalGenreRating').textContent = 
-                        parseFloat(book.genre_average_rating || 0).toFixed(1);
+                    // Update modal content with safe values
+                    document.getElementById('modalBookTitle').textContent = title;
+                    document.getElementById('modalBookAuthor').textContent = author;
+                    document.getElementById('modalBookCover').src = cover_image;
+                    document.getElementById('modalBookCover').onerror = function() {
+                        this.src = '../assets/images/default-cover.jpg';
+                    };
+                    document.getElementById('modalBookRating').textContent = rating;
+                    document.getElementById('modalTotalRatings').textContent = total_ratings;
+                    document.getElementById('modalBookGenre').textContent = genre;
+                    document.getElementById('modalBookDescription').textContent = description;
+                    document.getElementById('modalAuthorBooks').textContent = author_books;
+                    document.getElementById('modalGenreRating').textContent = genre_rating;
+                    document.getElementById('modalBookLanguage').textContent = language;
+                    document.getElementById('modalBookYear').textContent = publication_year;
+                    document.getElementById('modalBookFormat').textContent = format;
+                    document.getElementById('modalReadingTime').textContent = reading_time;
                     
                     // Show modal
                     modal.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error loading book details. Please try again.');
-                });
+                    currentBookId = bookId;
+                }
+            } catch (error) {
+                console.error('Error fetching book details:', error);
+            }
         }
     </script>
 </body>

@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Store auth token and user data
                     localStorage.setItem('authToken', data.token);
                     localStorage.setItem('userData', JSON.stringify(data.user));
-                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username || data.user.email);
                     
                     // Get return URL from query parameters
                     const urlParams = new URLSearchParams(window.location.search);
