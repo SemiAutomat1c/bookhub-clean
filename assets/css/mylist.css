@@ -1,0 +1,203 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+    overflow-x: hidden;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Dark Mode and Light Mode */
+.bg-dark-mode {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --border-color: #333333;
+    --card-bg: #1e1e1e;
+    --hover-bg: #2d2d2d;
+    --accent-color: #8a2be2;
+    --accent-color-dark: #7525c1;
+    --text-muted: #666666;
+}
+
+.bg-light-mode {
+    --bg-color: white;
+    --text-color: #333;
+    --border-color: #ddd;
+    --card-bg: white;
+    --hover-bg: #f1f1f1;
+    --accent-color: #8a2be2;
+    --accent-color-dark: #7525c1;
+    --text-muted: #666666;
+}
+
+/* Main Layout */
+.mylist-main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Container */
+.mylist-container {
+    background: var(--bg-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+/* Header */
+.mylist-header {
+    margin-bottom: 20px;
+}
+
+.mylist-header h1 {
+    font-size: 24px;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+/* Filters */
+.list-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: var(--bg-color-light);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.filter-btn:hover {
+    background: var(--hover-color);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Empty State */
+.empty-list-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.empty-list-message i {
+    font-size: 48px;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.empty-list-message h2 {
+    font-size: 20px;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.empty-list-message p {
+    color: var(--text-color-secondary);
+    margin-bottom: 20px;
+}
+
+/* Book Grid */
+.book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+}
+
+/* Sign In Prompt */
+.sign-in-prompt {
+    text-align: center;
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 30px 20px;
+    background: var(--bg-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sign-in-prompt i {
+    font-size: 48px;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.sign-in-prompt h2 {
+    font-size: 20px;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.sign-in-prompt p {
+    color: var(--text-color-secondary);
+    margin-bottom: 20px;
+}
+
+/* Buttons */
+.primary-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.primary-btn:hover {
+    background: var(--primary-color-dark);
+}
+
+.create-account {
+    margin-top: 15px;
+    font-size: 14px;
+    color: var(--text-color-secondary);
+}
+
+.create-account a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.create-account a:hover {
+    text-decoration: underline;
+}
+
+/* Dark Mode */
+body.dark-mode .mylist-container,
+body.dark-mode .sign-in-prompt {
+    background: var(--bg-color-dark);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .mylist-main {
+        padding: 15px;
+    }
+
+    .mylist-container,
+    .sign-in-prompt {
+        padding: 15px;
+    }
+
+    .list-filters {
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .filter-btn {
+        white-space: nowrap;
+    }
+}

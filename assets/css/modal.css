@@ -1,0 +1,224 @@
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    position: relative;
+    background-color: var(--bg-color);
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.3s;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--input-bg);
+}
+
+.close:hover {
+    color: var(--text-color);
+    background-color: var(--border-color);
+}
+
+.book-details {
+    display: flex;
+    gap: 40px;
+    padding: 20px 0;
+}
+
+.book-cover {
+    flex: 0 0 300px;
+}
+
+.book-cover img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    aspect-ratio: 2/3;
+    object-fit: cover;
+}
+
+.book-info {
+    flex: 1;
+}
+
+.book-info h2 {
+    margin: 0 0 15px 0;
+    color: var(--text-color);
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+.book-info .author {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: var(--input-bg);
+    border-radius: 20px;
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+
+.rating .fa-star {
+    color: #ffc107;
+}
+
+.genre {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.description {
+    color: var(--text-color);
+    line-height: 1.8;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.additional-info {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.additional-info p {
+    color: var(--text-muted);
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.additional-info i {
+    color: var(--primary-color);
+    width: 20px;
+    text-align: center;
+}
+
+/* Modal Actions */
+.modal-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+}
+
+.modal-actions button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.modal-actions button:hover {
+    transform: translateY(-2px);
+}
+
+.modal-actions .primary-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
+.modal-actions .primary-btn:hover {
+    background: var(--primary-color-dark);
+}
+
+.modal-actions .secondary-btn {
+    background: var(--bg-color-light);
+    color: var(--text-color);
+}
+
+.modal-actions .secondary-btn:hover {
+    background: var(--hover-color);
+}
+
+/* Dark mode support */
+body.dark-mode .modal-content {
+    background-color: var(--bg-color-dark);
+}
+
+body.dark-mode .rating {
+    background-color: var(--input-bg-dark);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .book-details {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .book-cover {
+        flex: 0 0 auto;
+        max-width: 250px;
+        margin: 0 auto;
+    }
+
+    .book-info h2 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .close {
+        right: 10px;
+        top: 10px;
+    }
+}

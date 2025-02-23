@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reading List - BookHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/mylist.css">
+    <script src="../assets/js/theme.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <nav class="header-nav">
+            <a href="index.html" class="nav-button">Home</a>
+            <a href="search.html" class="nav-button">Search</a>
+            <a href="mylist.html" class="nav-button active protected-feature">My List</a>
+            <div class="profile-dropdown protected-feature">
+                <button class="profile-button nav-button">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="profile.html">View Profile</a>
+                    <a href="#" onclick="logout()">Logout</a>
+                </div>
+            </div>
+            <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main class="mylist-main">
+        <!-- Reading List Section (shown when logged in) -->
+        <div class="mylist-container protected-feature">
+            <div class="mylist-header">
+                <h1>My Reading List</h1>
+                <div class="list-filters">
+                    <button class="filter-btn active" data-filter="all">All Books</button>
+                    <button class="filter-btn" data-filter="reading">Currently Reading</button>
+                    <button class="filter-btn" data-filter="want-to-read">Want to Read</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                </div>
+            </div>
+
+            <div class="mylist-content">
+                <div class="empty-list-message">
+                    <i class="fas fa-book-open"></i>
+                    <h2>Your reading list is empty</h2>
+                    <p>Start adding books to your reading list</p>
+                    <a href="search.html" class="primary-btn">Browse Books</a>
+                </div>
+
+                <div class="book-grid" style="display: none;">
+                    <!-- Books will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sign In Prompt (shown when not logged in) -->
+        <div class="sign-in-prompt signed-out-only">
+            <i class="fas fa-book-reader"></i>
+            <h2>Sign in to view your reading list</h2>
+            <p>Keep track of books you want to read and your reading progress</p>
+            <div class="prompt-actions">
+                <a href="sign-in.html" class="primary-btn">Sign In</a>
+                <p class="create-account">
+                    Don't have an account? <a href="sign-in.html">Create one</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script src="../src/js/script.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const emptyListMessage = document.querySelector('.empty-list-message');
+        const bookGrid = document.querySelector('.book-grid');
+
+        // Handle filter buttons
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                const filter = button.dataset.filter;
+                filterBooks(filter);
+            });
+        });
+
+        // Function to filter books (placeholder)
+        function filterBooks(filter) {
+            console.log('Filtering by:', filter);
+            emptyListMessage.style.display = 'flex';
+            bookGrid.style.display = 'none';
+        }
+    });
+    </script>
+</body>
+</html>

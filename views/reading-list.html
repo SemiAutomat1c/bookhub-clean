@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading List - BookHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/reading-list.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" class="search-input" placeholder="Search books...">
+                <button class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <a href="../index.html" class="nav-button">Home</a>
+            <a href="search.html" class="nav-button">Search</a>
+            <a href="reading-list.html" class="nav-button protected-feature active">My List</a>
+            <div class="auth-buttons">
+                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="profile.html" class="nav-button protected-feature">Profile</a>
+            </div>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="reading-list-container">
+        <div class="reading-list-header">
+            <h1>My Reading List</h1>
+            <p>Track and manage your reading journey</p>
+        </div>
+
+        <div class="reading-list-tabs">
+            <button class="tab-button active" data-list="currently-reading">
+                Currently Reading
+            </button>
+            <button class="tab-button" data-list="want-to-read">
+                Want to Read
+            </button>
+            <button class="tab-button" data-list="completed">
+                Completed
+            </button>
+        </div>
+
+        <div class="reading-list-content">
+            <div id="currently-reading" class="book-list active">
+                <!-- Books will be added here -->
+            </div>
+            <div id="want-to-read" class="book-list">
+                <!-- Books will be added here -->
+            </div>
+            <div id="completed" class="book-list">
+                <!-- Books will be added here -->
+            </div>
+        </div>
+
+        <div class="empty-state" style="display: none;">
+            <p>No books yet</p>
+            <p>Start building your reading list by adding books from our collection</p>
+            <a href="search.html" class="browse-books-btn">Browse Books</a>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Check if user is logged in
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+        }
+    </script>
+    <script src="../src/js/theme.js"></script>
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get reading list from localStorage
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            
+            // Function to display books in a list
+            function displayBooks(listId, books) {
+                const container = document.getElementById(listId);
+                const emptyState = document.querySelector('.empty-state');
+                
+                if (!books || books.length === 0) {
+                    container.innerHTML = '';
+                    if (Object.values(readingList).every(list => !list || list.length === 0)) {
+                        emptyState.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                emptyState.style.display = 'none';
+                container.innerHTML = books.map(book => `
+                    <div class="book-card" data-book-id="${book.id}">
+                        <img src="${book.cover || 'https://cdn-icons-png.flaticon.com/512/3145/3145765.png'}" 
+                             alt="${book.title}" 
+                             class="book-cover"
+                             onerror="this.src='https://cdn-icons-png.flaticon.com/512/3145/3145765.png'">
+                        <div class="book-info">
+                            <h3 class="book-title">${book.title}</h3>
+                            <p class="book-author">${book.author}</p>
+                            ${listId === 'currently-reading' ? `
+                                <div class="reading-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress" style="width: ${book.progress || 0}%"></div>
+                                    </div>
+                                    <span class="progress-text">${book.progress || 0}% complete</span>
+                                </div>
+                            ` : ''}
+                            <div class="book-actions">
+                                ${listId === 'currently-reading' ? `
+                                    <button class="update-progress" onclick="updateProgress('${book.id}')">
+                                        <i class="fas fa-tasks"></i>
+                                        Update Progress
+                                    </button>
+                                ` : ''}
+                                <button class="move-book" onclick="moveBook('${book.id}', '${listId}')">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    Move to
+                                </button>
+                                <button class="remove-book" onclick="removeBook('${book.id}', '${listId}')">
+                                    <i class="fas fa-trash"></i>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Display books for each list
+            displayBooks('currently-reading', readingList['currently-reading']);
+            displayBooks('want-to-read', readingList['want-to-read']);
+            displayBooks('completed', readingList['completed']);
+
+            // Handle tab switching
+            const tabs = document.querySelectorAll('.tab-button');
+            const lists = document.querySelectorAll('.book-list');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    // Show corresponding list
+                    const listId = tab.dataset.list;
+                    lists.forEach(list => {
+                        list.classList.remove('active');
+                        if (list.id === listId) {
+                            list.classList.add('active');
+                        }
+                    });
+                });
+            });
+        });
+
+        // Function to update reading progress
+        function updateProgress(bookId) {
+            const progress = prompt('Enter progress (0-100):', '0');
+            if (progress === null) return;
+
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            const book = readingList['currently-reading'].find(b => b.id === bookId);
+            
+            if (book) {
+                book.progress = Math.min(100, Math.max(0, parseInt(progress) || 0));
+                localStorage.setItem('readingList', JSON.stringify(readingList));
+                location.reload();
+            }
+        }
+
+        // Function to move book between lists
+        function moveBook(bookId, currentList) {
+            const lists = {
+                'currently-reading': 'Currently Reading',
+                'want-to-read': 'Want to Read',
+                'completed': 'Completed'
+            };
+            
+            const options = Object.entries(lists)
+                .filter(([key]) => key !== currentList)
+                .map(([key, label]) => `<option value="${key}">${label}</option>`)
+                .join('');
+            
+            const newList = prompt(`Move to:\n${Object.entries(lists)
+                .filter(([key]) => key !== currentList)
+                .map(([key, label]) => `- ${label}`)
+                .join('\n')}`);
+            
+            if (!newList || !lists[newList]) return;
+            
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            const bookIndex = readingList[currentList].findIndex(b => b.id === bookId);
+            
+            if (bookIndex !== -1) {
+                const book = readingList[currentList].splice(bookIndex, 1)[0];
+                if (!readingList[newList]) readingList[newList] = [];
+                readingList[newList].push(book);
+                localStorage.setItem('readingList', JSON.stringify(readingList));
+                location.reload();
+            }
+        }
+
+        // Function to remove book from list
+        function removeBook(bookId, listId) {
+            if (!confirm('Are you sure you want to remove this book from your list?')) return;
+            
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            const bookIndex = readingList[listId].findIndex(b => b.id === bookId);
+            
+            if (bookIndex !== -1) {
+                readingList[listId].splice(bookIndex, 1);
+                localStorage.setItem('readingList', JSON.stringify(readingList));
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

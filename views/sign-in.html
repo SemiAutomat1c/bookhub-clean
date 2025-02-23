@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - BookHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/sign-in.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                <button class="search-button" onclick="performSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <div class="search-suggestions"></div>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <a href="index.html" class="nav-button">Home</a>
+            <a href="search.html" class="nav-button">Search</a>
+            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+            <div class="auth-buttons">
+                <div class="profile-dropdown protected-feature">
+                    <button class="profile-button nav-button">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="profile.html">View Profile</a>
+                        <a href="#" onclick="logout()">Logout</a>
+                    </div>
+                </div>
+                <a href="sign-in.html" class="nav-button signed-out-only active">Sign In</a>
+            </div>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
+
+    <script>
+    // Theme toggle functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        const darkModeToggle = document.querySelector('.dark-mode-toggle');
+        
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Add click event to dark mode toggle
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+
+        // Initialize theme on page load
+        initTheme();
+    });
+    </script>
+
+    <main class="sign-in-main">
+        <div class="sign-in-container">
+            <img src="../assets/images/logo22.jpg" alt="BookHub Logo" class="sign-in-logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="BookHub Logo" class="sign-in-logo dark-logo">
+            
+            <!-- Sign In Form -->
+            <div class="sign-in-header">
+                <h1 class="sign-in-title">Welcome Back!</h1>
+                <p class="sign-in-subtitle">Sign in to continue your reading journey</p>
+            </div>
+            <form class="sign-in-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember">
+                        Remember me
+                    </label>
+                    <a href="#" class="forgot-password">Forgot Password?</a>
+                </div>
+                <button type="submit" class="sign-in-button">Sign In</button>
+                <div class="social-sign-in">
+                    <p>Or sign in with</p>
+                    <div class="social-buttons">
+                        <button type="button" class="social-button google">
+                            <i class="fab fa-google"></i>
+                            Google
+                        </button>
+                        <button type="button" class="social-button facebook">
+                            <i class="fab fa-facebook-f"></i>
+                            Facebook
+                        </button>
+                    </div>
+                </div>
+                <p class="switch-form-prompt">
+                    Don't have an account? <a href="#" class="switch-to-signup">Sign Up</a>
+                </p>
+            </form>
+
+            <!-- Sign Up Form -->
+            <div class="sign-in-header">
+                <h1 class="sign-up-title">Create Account</h1>
+                <p class="sign-up-subtitle">Join our community of book lovers</p>
+            </div>
+            <form class="sign-up-form">
+                <div class="form-group">
+                    <label for="fullname">Full Name</label>
+                    <input type="text" id="fullname" name="fullname" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required>
+                </div>
+                <button type="submit" class="sign-up-button">Create Account</button>
+                <p class="switch-form-prompt">
+                    Already have an account? <a href="#" class="switch-to-signin">Sign In</a>
+                </p>
+            </form>
+        </div>
+    </main>
+
+    <script src="../src/js/script.js"></script>
+    <script src="../src/js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+/* Reader layout */
+.header {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 60px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.header-left {
+    flex: 0 0 200px;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center;
+}
+
+.header-center h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-right {
+    flex: 0 0 300px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: 10px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    width: 40px;
+    height: 40px;
+}
+
+.theme-toggle:hover {
+    background-color: var(--hover-color);
+}
+
+.theme-toggle i {
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.theme-toggle .light-icon {
+    display: none;
+}
+
+.theme-toggle .dark-icon {
+    display: block;
+}
+
+body.dark-mode .theme-toggle .light-icon {
+    display: block;
+}
+
+body.dark-mode .theme-toggle .dark-icon {
+    display: none;
+}
+
+/* Reader controls */
+.reader-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--bg-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: var(--hover-color);
+}
+
+.btn i {
+    font-size: 16px;
+}
+
+.page-info {
+    color: var(--text-color);
+    font-size: 14px;
+    margin: 0 10px;
+}
+
+#zoomLevel {
+    color: var(--text-color);
+    font-size: 14px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Main content */
+.reader-main {
+    padding: 20px;
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+}
+
+.book-viewer {
+    flex: 1;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--bg-color);
+}
+
+/* Dark mode styles */
+body.dark-mode .book-viewer {
+    background: var(--bg-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .header {
+        padding: 10px;
+    }
+    
+    .header-left {
+        flex: 0 0 150px;
+    }
+    
+    .header-right {
+        flex: 0 0 250px;
+    }
+    
+    .header-center h1 {
+        font-size: 1.2rem;
+    }
+    
+    .reader-controls {
+        gap: 5px;
+    }
+    
+    .btn {
+        padding: 6px;
+    }
+    
+    .page-info, #zoomLevel {
+        font-size: 0.8rem;
+    }
+    
+    .reader-main {
+        padding: 10px;
+    }
+}

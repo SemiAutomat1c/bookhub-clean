@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - BookHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/search.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                <button class="search-button" onclick="performSearch()">
+                    <i class="fas fa-search"></i>
+                </button>
+                <div class="search-suggestions"></div>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <a href="index.html" class="nav-button">Home</a>
+            <a href="search.html" class="nav-button active">Search</a>
+            <a href="mylist.html" class="nav-button protected-feature">My List</a>
+            <div class="profile-dropdown protected-feature">
+                <button class="profile-button nav-button">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="profile.html">View Profile</a>
+                    <a href="#" onclick="logout()">Logout</a>
+                </div>
+            </div>
+            <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
+
+    <script>
+    // Theme toggle functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        const darkModeToggle = document.querySelector('.dark-mode-toggle');
+        
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Add click event to dark mode toggle
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+
+        // Initialize theme on page load
+        initTheme();
+    });
+    </script>
+
+    <main>
+        <section class="search-section">
+            <!-- Advanced Filters -->
+            <div class="advanced-filters">
+                <h3>Advanced Filters</h3>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label for="genre">Genre</label>
+                        <select id="genre">
+                            <option value="all">All Genres</option>
+                            <option value="fiction">Fiction</option>
+                            <option value="non-fiction">Non-Fiction</option>
+                            <option value="mystery">Mystery</option>
+                            <option value="sci-fi">Science Fiction</option>
+                            <option value="fantasy">Fantasy</option>
+                            <option value="romance">Romance</option>
+                            <option value="thriller">Thriller</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="language">Language</label>
+                        <select id="language">
+                            <option value="all">All Languages</option>
+                            <option value="english">English</option>
+                            <option value="spanish">Spanish</option>
+                            <option value="french">French</option>
+                            <option value="german">German</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="year">Publication Year</label>
+                        <select id="year">
+                            <option value="all">All Years</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                            <option value="2021">2021</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label for="rating">Minimum Rating</label>
+                        <select id="rating">
+                            <option value="0">Any Rating</option>
+                            <option value="4">4+ Stars</option>
+                            <option value="3">3+ Stars</option>
+                            <option value="2">2+ Stars</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="availability">Availability</label>
+                        <select id="availability">
+                            <option value="all">All Books</option>
+                            <option value="ebook">E-Book Available</option>
+                            <option value="audiobook">Audiobook Available</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="apply-filters" class="apply-filters-btn">Apply Filters</button>
+            </div>
+
+            <div class="search-results">
+                <div class="search-header">
+                    <h2>Search Results</h2>
+                    <div class="quick-sort">
+                        <div class="sort-group">
+                            <label for="sort-select">Sort by:</label>
+                            <select id="sort-select">
+                                <option value="relevance">Relevance</option>
+                                <option value="rating">Rating</option>
+                                <option value="date">Publication Date</option>
+                                <option value="title">Title</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="search-results-grid" class="books-grid">
+                    <!-- Search results will be displayed here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.querySelector('.search-input');
+            const searchButton = document.querySelector('.search-button');
+            const resultsGrid = document.getElementById('search-results-grid');
+            const sortSelect = document.getElementById('sort-select');
+            const applyFiltersBtn = document.getElementById('apply-filters');
+
+            // Function to perform search
+            function performSearch() {
+                const query = searchInput ? searchInput.value.trim() : '';
+                const genre = document.getElementById('genre').value;
+                const language = document.getElementById('language').value;
+                const year = document.getElementById('year').value;
+                const rating = document.getElementById('rating').value;
+                const availability = document.getElementById('availability').value;
+                const sortBy = sortSelect.value;
+
+                // Get books from localStorage or fetch from server
+                fetch('../books.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        let results = filterBooks(data.books, query, {
+                            genre,
+                            language,
+                            year,
+                            rating,
+                            availability,
+                            sortBy
+                        });
+                        displayResults(results);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching books:', error);
+                        resultsGrid.innerHTML = `
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <p>Sorry, we couldn't load the books right now. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+            }
+
+            // Function to filter books based on search criteria
+            function filterBooks(books, query, filters) {
+                return books.filter(book => {
+                    const matchesQuery = !query || 
+                        book.title.toLowerCase().includes(query.toLowerCase()) ||
+                        book.author.toLowerCase().includes(query.toLowerCase());
+                    
+                    const matchesGenre = filters.genre === 'all' || book.genre === filters.genre;
+                    const matchesLanguage = filters.language === 'all' || book.language === filters.language;
+                    const matchesYear = filters.year === 'all' || book.published === filters.year;
+                    const matchesRating = book.rating >= parseFloat(filters.rating);
+                    const matchesAvailability = filters.availability === 'all' || 
+                        (filters.availability === 'ebook' && book.hasEbook) ||
+                        (filters.availability === 'audiobook' && book.hasAudiobook);
+
+                    return matchesQuery && matchesGenre && matchesLanguage && 
+                           matchesYear && matchesRating && matchesAvailability;
+                }).sort((a, b) => {
+                    switch (filters.sortBy) {
+                        case 'rating':
+                            return b.rating - a.rating;
+                        case 'date':
+                            return parseInt(b.published) - parseInt(a.published);
+                        case 'title':
+                            return a.title.localeCompare(b.title);
+                        default:
+                            return 0;
+                    }
+                });
+            }
+
+            // Function to display search results
+            function displayResults(books) {
+                if (books.length === 0) {
+                    resultsGrid.innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-search"></i>
+                            <p>No books found matching your criteria</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                resultsGrid.innerHTML = books.map(book => createBookCard(book)).join('');
+            }
+
+            // Event listeners
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') performSearch();
+                });
+            }
+            if (searchButton) {
+                searchButton.addEventListener('click', performSearch);
+            }
+            sortSelect.addEventListener('change', performSearch);
+            applyFiltersBtn.addEventListener('click', performSearch);
+
+            // Initial search
+            performSearch();
+        });
+
+        function createBookCard(book) {
+            return `
+                <div class="book-card">
+                    <img src="${book.cover}" alt="${book.title}" class="book-cover">
+                    <div class="book-info">
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">${book.author}</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

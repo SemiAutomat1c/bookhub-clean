@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - BookHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/profile.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" class="search-input" placeholder="Search books...">
+                <button class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <a href="../index.html" class="nav-button">Home</a>
+            <a href="search.html" class="nav-button">Search</a>
+            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+            <div class="auth-buttons">
+                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="profile.html" class="nav-button protected-feature active">Profile</a>
+            </div>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="profile-container">
+        <div class="profile-header">
+            <h1>Profile</h1>
+            <button onclick="logout()" class="logout-button">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+        <div class="profile-content">
+            <div class="profile-section">
+                <h2>Account Information</h2>
+                <div class="profile-info">
+                    <p><strong>Username:</strong> <span id="username"></span></p>
+                    <p><strong>Email:</strong> <span id="email"></span></p>
+                    <p><strong>Member Since:</strong> <span id="memberSince"></span></p>
+                </div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-card">
+                    <i class="fas fa-book-reader"></i>
+                    <h3>Currently Reading</h3>
+                    <p id="currently-reading-count">0</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-list"></i>
+                    <h3>Want to Read</h3>
+                    <p id="want-to-read-count">0</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Completed</h3>
+                    <p id="completed-count">0</p>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <h2>Recent Activity</h2>
+                <div id="activity-list">
+                    <!-- Activity items will be added here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Check if user is logged in
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+        }
+    </script>
+    <script src="../src/js/theme.js"></script>
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/script.js"></script>
+    <script>
+        // Load profile data
+        document.addEventListener('DOMContentLoaded', () => {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+            
+            // Update profile info
+            document.getElementById('username').textContent = userData.name || 'User';
+            document.getElementById('email').textContent = userData.email || '';
+            document.getElementById('memberSince').textContent = userData.memberSince || '';
+            
+            // Update reading stats
+            document.getElementById('currently-reading-count').textContent = 
+                (readingList['currently-reading'] || []).length;
+            document.getElementById('want-to-read-count').textContent = 
+                (readingList['want-to-read'] || []).length;
+            document.getElementById('completed-count').textContent = 
+                (readingList['completed'] || []).length;
+
+            // Load recent activity
+            const activityList = document.getElementById('activity-list');
+            let recentActivity = [];
+
+            // Add books from each list to activity
+            ['currently-reading', 'want-to-read', 'completed'].forEach(listType => {
+                if (readingList[listType]) {
+                    readingList[listType].forEach(book => {
+                        recentActivity.push({
+                            type: listType,
+                            book: book,
+                            date: book.addedAt || new Date().toISOString()
+                        });
+                    });
+                }
+            });
+
+            // Sort by date, most recent first
+            recentActivity.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Display only the 5 most recent activities
+            recentActivity = recentActivity.slice(0, 5);
+
+            // Display activities
+            activityList.innerHTML = recentActivity.length ? recentActivity.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        ${activity.type === 'currently-reading' ? '<i class="fas fa-book-reader"></i>' :
+                          activity.type === 'want-to-read' ? '<i class="fas fa-bookmark"></i>' :
+                          '<i class="fas fa-check-circle"></i>'}
+                    </div>
+                    <div class="activity-details">
+                        <p>
+                            ${activity.type === 'currently-reading' ? 'Started reading' :
+                              activity.type === 'want-to-read' ? 'Added to reading list' :
+                              'Completed'} 
+                            <strong>${activity.book.title}</strong>
+                        </p>
+                        <span class="activity-date">
+                            ${new Date(activity.date).toLocaleDateString()}
+                        </span>
+                    </div>
+                </div>
+            `).join('') : '<p class="no-activity">No recent activity</p>';
+        });
+    </script>
+</body>
+</html>

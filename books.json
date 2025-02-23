@@ -1,0 +1,108 @@
+{
+    "books": [
+        {
+            "id": "1",
+            "title": "The Great Gatsby",
+            "author": "F. Scott Fitzgerald",
+            "cover": "https://covers.openlibrary.org/b/id/6498519-L.jpg",
+            "description": "A story of decadence and excess...",
+            "rating": 4.5,
+            "published": "1925",
+            "genre": "Classic Literature",
+            "pages": 180,
+            "hasMovie": true,
+            "popularity": 95
+        },
+        {
+            "id": "2",
+            "title": "To Kill a Mockingbird",
+            "author": "Harper Lee",
+            "cover": "https://covers.openlibrary.org/b/id/12009823-L.jpg",
+            "description": "A story of racial injustice...",
+            "rating": 4.8,
+            "published": "1960",
+            "genre": "Classic Literature",
+            "pages": 281,
+            "hasMovie": true,
+            "popularity": 92
+        },
+        {
+            "id": "3",
+            "title": "1984",
+            "author": "George Orwell",
+            "cover": "https://covers.openlibrary.org/b/id/7222246-L.jpg",
+            "description": "A dystopian social science fiction...",
+            "rating": 4.7,
+            "published": "1949",
+            "genre": "Science Fiction",
+            "pages": 328,
+            "hasMovie": true,
+            "popularity": 88
+        },
+        {
+            "id": "4",
+            "title": "The Seven Husbands of Evelyn Hugo",
+            "author": "Taylor Jenkins Reid",
+            "cover": "https://covers.openlibrary.org/b/id/12733556-L.jpg",
+            "description": "A gripping story of old Hollywood...",
+            "rating": 4.6,
+            "published": "2017",
+            "genre": "Historical Fiction",
+            "pages": 389,
+            "hasMovie": false,
+            "popularity": 85
+        },
+        {
+            "id": "5",
+            "title": "Lessons in Chemistry",
+            "author": "Bonnie Garmus",
+            "cover": "https://covers.openlibrary.org/b/id/12988079-L.jpg",
+            "description": "A debut novel about a female chemist...",
+            "rating": 4.4,
+            "published": "2022",
+            "genre": "Historical Fiction",
+            "pages": 390,
+            "hasMovie": false,
+            "popularity": 82
+        },
+        {
+            "id": "6",
+            "title": "Project Hail Mary",
+            "author": "Andy Weir",
+            "cover": "https://covers.openlibrary.org/b/id/10389354-L.jpg",
+            "description": "A lone astronaut must save humanity...",
+            "rating": 4.9,
+            "published": "2021",
+            "genre": "Science Fiction",
+            "pages": 496,
+            "hasMovie": false,
+            "popularity": 90
+        },
+        {
+            "id": "7",
+            "title": "Tomorrow, and Tomorrow, and Tomorrow",
+            "author": "Gabrielle Zevin",
+            "cover": "https://covers.openlibrary.org/b/id/12979164-L.jpg",
+            "description": "A story about friendship, art, love, and games...",
+            "rating": 4.3,
+            "published": "2022",
+            "genre": "Literary Fiction",
+            "pages": 416,
+            "hasMovie": false,
+            "popularity": 78
+        },
+        {
+            "id": "8",
+            "title": "The Demon in the Mountain",
+            "author": "Grace D. Li",
+            "cover": "https://covers.openlibrary.org/b/id/12812984-L.jpg",
+            "description": "A thrilling heist story...",
+            "rating": 4.2,
+            "published": "2023",
+            "genre": "Mystery",
+            "pages": 352,
+            "hasMovie": false,
+            "popularity": 75
+        }
+    ]
+}
