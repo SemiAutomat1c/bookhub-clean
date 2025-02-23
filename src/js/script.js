@@ -36,7 +36,7 @@ function checkLoginState() {
     });
 
     // Check if we're on a protected page
-    const protectedPages = ['/views/mylist.html', '/views/reading-list.html', '/views/profile.html'];
+    const protectedPages = ['/views/reading-list.html', '/views/profile.html'];
     const currentPath = window.location.pathname.toLowerCase();
     
     if (protectedPages.some(page => currentPath.endsWith(page.toLowerCase())) && !isLoggedIn) {
