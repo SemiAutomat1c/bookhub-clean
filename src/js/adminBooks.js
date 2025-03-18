@@ -7,13 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function checkAdminAccess() {
     try {
-        const response = await fetch('../api/auth/admin.php');
+        const response = await fetch('../api/auth/admin.php', {
+            credentials: 'include'
+        });
+
         if (!response.ok) {
             throw new Error('Failed to check admin access');
         }
         
         const text = await response.text();
-        if (text.startsWith('ERROR:')) {
+        console.log('Admin check response:', text); // Debug log
+
+        if (text.startsWith('ERROR')) {
             window.location.href = 'index.html';
             return;
         }
@@ -74,89 +79,105 @@ function switchSection(sectionId) {
 
 async function loadAdminBooks() {
     try {
-        const response = await fetch('../api/books.php');
-        if (!response.ok) throw new Error('Failed to load books');
-        
+        const searchInput = document.getElementById('bookSearch').value;
+        const genreFilter = document.getElementById('genreFilter').value;
+        const sortBy = document.getElementById('sortBy').value;
+
+        const response = await fetch(`../api/books/list_books.php?search=${encodeURIComponent(searchInput)}&genre=${encodeURIComponent(genreFilter)}&sort=${encodeURIComponent(sortBy)}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const text = await response.text();
-        if (text.startsWith('ERROR:')) {
+        console.log('Load books response:', text); // Debug log
+        
+        if (text.startsWith('ERROR')) {
             throw new Error(text.substring(6));
         }
-        
-        if (text === 'NO_RESULTS') {
+
+        const booksGrid = document.getElementById('adminBooksGrid');
+        booksGrid.innerHTML = '';
+
+        if (text === 'SUCCESS|NO_BOOKS') {
             displayNoBooks();
             return;
         }
 
-        const books = text.split('\n').map(line => {
-            const [
-                id, title, author, cover_image, description, genre,
-                publication_year, file_path, file_type, average_rating,
-                total_ratings
-            ] = line.split('|');
+        // Remove 'SUCCESS|' prefix and split into books
+        const booksData = text.substring(8).split('\n').filter(line => line.trim());
+        
+        if (booksData.length === 0) {
+            displayNoBooks();
+            return;
+        }
 
-            return {
-                id, title, author, cover_image, description, genre,
-                publication_year, file_path, file_type,
-                average_rating: parseFloat(average_rating),
-                total_ratings: parseInt(total_ratings)
-            };
+        booksData.forEach(bookData => {
+            const [id, title, author, description, genre, publication_year, cover, file_path, file_type] = bookData.split('|');
+            if (id && title) {
+                const bookCard = createBookCard(id, title, author, description, genre, publication_year, cover, file_path);
+                booksGrid.appendChild(bookCard);
+            }
         });
-
-        displayAdminBooks(books);
-        updateGenreFilter(books);
-
     } catch (error) {
         console.error('Error loading books:', error);
-        displayError(error.message);
+        displayError('Failed to load books. Please try again.');
     }
 }
 
-function displayAdminBooks(books) {
-    const grid = document.getElementById('adminBooksGrid');
-    if (!grid) return;
+function createBookCard(id, title, author, description, genre, year, cover, file_path) {
+    // Escape special characters in strings for onclick handlers
+    const escapedTitle = title.replace(/'/g, "\\'");
+    const escapedAuthor = author.replace(/'/g, "\\'");
+    const escapedDescription = (description || '').replace(/'/g, "\\'");
 
-    grid.innerHTML = books.map(book => createAdminBookCard(book)).join('');
-}
+    // Default image if no cover is provided (light gray background with "No Cover" text)
+    const defaultCover = 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="200" height="300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#e1e1e1"/>
+            <text x="50%" y="50%" font-family="Arial" font-size="20" fill="#2c3e50" text-anchor="middle">No Cover</text>
+        </svg>
+    `);
+    
+    // Construct the full image path
+    let coverPath = cover ? '../' + cover.replace(/^\/+/, '') : defaultCover;
 
-function createAdminBookCard(book) {
-    return `
-        <div class="admin-book-card" data-book-id="${book.id}">
-            <div class="book-cover">
-                <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" 
-                     alt="${book.title}"
-                     onerror="this.src='../assets/images/default-cover.jpg'">
+    const card = document.createElement('div');
+    card.className = 'admin-book-card';
+    card.style.textAlign = 'center';
+    card.innerHTML = `
+        <div class="book-cover" style="width: 200px; height: 300px; margin: 0 auto 15px auto; background-color: #f5f5f5;">
+            <img src="${coverPath}" 
+                 alt="${escapedTitle}"
+                 onerror="this.onerror=null; this.src='${defaultCover}';"
+                 style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <div class="book-info" style="text-align: left;">
+            <h3 style="text-align: center; margin-bottom: 15px;">${escapedTitle}</h3>
+            <p><strong>Author:</strong> ${escapedAuthor}</p>
+            <p><strong>Genre:</strong> ${genre || 'N/A'}</p>
+            <p><strong>Year:</strong> ${year || 'N/A'}</p>
+            <p class="description"><strong>Description:</strong> ${escapedDescription || 'No description available.'}</p>
+            <div class="book-actions" style="text-align: center; margin-top: 15px;">
+                <button class="edit-btn" onclick="editBook(${id}, '${escapedTitle}', '${escapedAuthor}', '${escapedDescription}', '${genre || ''}', '${year || ''}', '${file_path || ''}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="delete-btn" onclick="deleteBook(${id})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
             </div>
-            <div class="book-info">
-                <h3>${book.title}</h3>
-                <p>by ${book.author}</p>
-                <p>Genre: ${book.genre}</p>
-                <p>Published: ${book.publication_year}</p>
-                <div class="book-actions">
-                    <button class="edit-btn" onclick="editBook('${book.id}')">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="delete-btn" onclick="deleteBook('${book.id}')">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
+            ${file_path ? `
+            <div class="book-download" style="text-align: center; margin-top: 10px;">
+                <a href="../${file_path}" target="_blank" class="download-btn">
+                    <i class="fas fa-download"></i> Download PDF
+                </a>
             </div>
+            ` : ''}
         </div>
     `;
-}
-
-function updateGenreFilter(books) {
-    const genreFilter = document.getElementById('genreFilter');
-    if (!genreFilter) return;
-
-    const genres = [...new Set(books.map(book => book.genre))];
-    const genreOptions = genres.map(genre => 
-        `<option value="${genre}">${genre}</option>`
-    ).join('');
-
-    genreFilter.innerHTML = `
-        <option value="">All Genres</option>
-        ${genreOptions}
-    `;
+    return card;
 }
 
 function handleSearch() {
@@ -211,111 +232,13 @@ function showAddBookModal() {
     const form = document.getElementById('bookForm');
     const modalTitle = document.getElementById('modalTitle');
 
-    modalTitle.textContent = 'Add New Book';
+    // Reset form and title
     form.reset();
     form.removeAttribute('data-book-id');
+    modalTitle.textContent = 'Add New Book';
+
+    // Show modal
     modal.style.display = 'block';
-}
-
-async function editBook(bookId) {
-    try {
-        const response = await fetch(`../api/books.php?id=${bookId}`);
-        if (!response.ok) throw new Error('Failed to fetch book details');
-
-        const text = await response.text();
-        if (text.startsWith('ERROR:')) {
-            throw new Error(text.substring(6));
-        }
-
-        const [
-            id, title, author, cover_image, description, genre,
-            publication_year, file_path, file_type
-        ] = text.split('|');
-
-        const modal = document.getElementById('bookFormModal');
-        const form = document.getElementById('bookForm');
-        const modalTitle = document.getElementById('modalTitle');
-
-        modalTitle.textContent = 'Edit Book';
-        form.setAttribute('data-book-id', id);
-
-        // Fill form fields
-        document.getElementById('title').value = title;
-        document.getElementById('author').value = author;
-        document.getElementById('genre').value = genre;
-        document.getElementById('publicationYear').value = publication_year;
-        document.getElementById('description').value = description;
-
-        modal.style.display = 'block';
-
-    } catch (error) {
-        console.error('Error fetching book details:', error);
-        alert('Failed to load book details. Please try again.');
-    }
-}
-
-async function handleBookSubmit(e) {
-    e.preventDefault();
-
-    const form = e.target;
-    const bookId = form.getAttribute('data-book-id');
-    const isEdit = !!bookId;
-
-    const formData = new FormData(form);
-    formData.append('action', isEdit ? 'update' : 'add');
-    if (isEdit) {
-        formData.append('id', bookId);
-    }
-
-    try {
-        const response = await fetch('../api/books.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) throw new Error('Failed to save book');
-        
-        const text = await response.text();
-        if (text.startsWith('ERROR:')) {
-            throw new Error(text.substring(6));
-        }
-
-        closeBookModal();
-        loadAdminBooks();
-        showMessage(isEdit ? 'Book updated successfully!' : 'Book added successfully!');
-
-    } catch (error) {
-        console.error('Error saving book:', error);
-        alert('Failed to save book. Please try again.');
-    }
-}
-
-async function deleteBook(bookId) {
-    if (!confirm('Are you sure you want to delete this book?')) return;
-
-    try {
-        const response = await fetch('../api/books.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `action=delete&id=${bookId}`
-        });
-
-        if (!response.ok) throw new Error('Failed to delete book');
-        
-        const text = await response.text();
-        if (text.startsWith('ERROR:')) {
-            throw new Error(text.substring(6));
-        }
-
-        loadAdminBooks();
-        showMessage('Book deleted successfully!');
-
-    } catch (error) {
-        console.error('Error deleting book:', error);
-        alert('Failed to delete book. Please try again.');
-    }
 }
 
 function closeBookModal() {
@@ -323,25 +246,155 @@ function closeBookModal() {
     modal.style.display = 'none';
 }
 
-function showMessage(message) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message';
-    messageDiv.textContent = message;
-    messageDiv.style.position = 'fixed';
-    messageDiv.style.top = '20px';
-    messageDiv.style.left = '50%';
-    messageDiv.style.transform = 'translateX(-50%)';
-    messageDiv.style.padding = '10px 20px';
-    messageDiv.style.backgroundColor = 'var(--primary-color)';
-    messageDiv.style.color = 'white';
-    messageDiv.style.borderRadius = '5px';
-    messageDiv.style.zIndex = '1000';
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('bookFormModal');
+    if (event.target === modal) {
+        closeBookModal();
+    }
+}
+
+// Close modal when clicking the X button
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.querySelector('.close');
+    if (closeBtn) {
+        closeBtn.onclick = closeBookModal;
+    }
+
+    // Add form submit handler
+    const bookForm = document.getElementById('bookForm');
+    if (bookForm) {
+        bookForm.addEventListener('submit', handleBookSubmit);
+    }
+});
+
+async function handleBookSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const bookId = form.getAttribute('data-book-id');
     
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        messageDiv.remove();
-    }, 3000);
+    try {
+        const url = bookId ? 
+            '../api/books/update_book.php' : 
+            '../api/books/add_book.php';
+            
+        if (bookId) {
+            formData.append('book_id', bookId);
+        }
+
+        // Validate publication year
+        const year = formData.get('publication_year');
+        if (year) {
+            const yearNum = parseInt(year);
+            if (yearNum < 1800 || yearNum > new Date().getFullYear() + 1) {
+                throw new Error('Publication year must be between 1800 and ' + (new Date().getFullYear() + 1));
+            }
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const text = await response.text();
+        console.log('Save book response:', text); // Debug log
+
+        const [status, message] = text.split('|');
+        if (status === 'ERROR') {
+            throw new Error(message);
+        }
+
+        closeBookModal();
+        await loadAdminBooks();
+        showSuccess(message || 'Book saved successfully');
+    } catch (error) {
+        console.error('Error saving book:', error);
+        showError(error.message || 'Failed to save book. Please try again.');
+    }
+}
+
+async function deleteBook(bookId) {
+    if (!confirm('Are you sure you want to delete this book?')) {
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('book_id', bookId);
+
+        const response = await fetch('../api/books/delete_book.php', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const text = await response.text();
+        console.log('Delete response:', text); // Debug log
+
+        if (text.startsWith('ERROR')) {
+            throw new Error(text.substring(6));
+        }
+
+        showSuccess('Book deleted successfully');
+        await loadAdminBooks(); // Reload the books list
+    } catch (error) {
+        console.error('Error deleting book:', error);
+        showError(error.message || 'Failed to delete book');
+    }
+}
+
+async function editBook(id, title, author, description, genre, year, file_path) {
+    try {
+        const form = document.getElementById('bookForm');
+        form.setAttribute('data-book-id', id);
+        
+        document.getElementById('modalTitle').textContent = 'Edit Book';
+        document.getElementById('title').value = title;
+        document.getElementById('author').value = author;
+        document.getElementById('description').value = description || '';
+        document.getElementById('genre').value = genre || '';
+        document.getElementById('publication_year').value = year || '';
+        
+        // Show the current file name if exists
+        const bookFileInput = document.getElementById('book_file');
+        bookFileInput.required = false; // Make file not required for edit
+        if (file_path) {
+            const fileName = file_path.split('/').pop();
+            bookFileInput.setAttribute('data-current-file', fileName);
+        }
+
+        const modal = document.getElementById('bookFormModal');
+        modal.style.display = 'block';
+    } catch (error) {
+        console.error('Error loading book details:', error);
+        showError(error.message || 'Failed to load book details. Please try again.');
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.querySelector('.admin-content').prepend(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function showSuccess(message) {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    document.querySelector('.admin-content').prepend(successDiv);
+    setTimeout(() => successDiv.remove(), 5000);
 }
 
 function displayNoBooks() {
