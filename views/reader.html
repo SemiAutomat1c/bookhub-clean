@@ -8,8 +8,12 @@
     <link rel="stylesheet" href="../assets/css/styles.css">
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/reader.css">
+    <!-- PDF.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
     <script src="../assets/js/theme.js"></script>
     <script src="../src/js/auth.js"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
    <!-- Header -->
@@ -54,11 +58,42 @@
 
     <!-- Main Content -->
     <main class="reader-main">
-        <iframe id="bookViewer" class="book-viewer"></iframe>
+        <div id="readerContainer" class="reader-container">
+            <div id="toolbar" class="reader-toolbar">
+                <button id="prevPage" class="toolbar-button">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span id="pageInfo">Page <span id="pageNum"></span> of <span id="pageCount"></span></span>
+                <button id="nextPage" class="toolbar-button">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="zoom-controls">
+                    <button id="zoomOut" class="toolbar-button">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <span id="zoomLevel">100%</span>
+                    <button id="zoomIn" class="toolbar-button">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="viewerContainer" class="viewer-container">
+                <canvas id="pdfViewer"></canvas>
+            </div>
+        </div>
     </main>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.0;
+    let canvas = document.getElementById('pdfViewer');
+    let ctx = canvas.getContext('2d');
+
+    // Initialize PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    document.addEventListener('DOMContentLoaded', async () => {
         // Check authentication first
         const authToken = localStorage.getItem('authToken');
         if (!authToken) {
@@ -75,83 +110,120 @@
             return;
         }
 
-        // Get book details
-        fetch(`../get_books.php`)
-            .then(response => response.json())
-            .then(books => {
-                const book = books.find(b => b.book_id === bookId);
-                if (!book) {
-                    throw new Error('Book not found');
-                }
+        try {
+            // Get book details
+            const response = await fetch(`../api/books/get_book.php?book_id=${bookId}`);
+            const text = await response.text();
+            
+            if (text.startsWith('ERROR')) {
+                throw new Error(text);
+            }
 
-                // Store current book
-                localStorage.setItem('currentBook', JSON.stringify({
-                    id: book.book_id,
-                    title: book.title,
-                    author: book.author,
-                    cover_image: book.cover_image
-                }));
+            const [book_id, title, author, description, genre, publication_year, cover_image, content_path] = text.split('|');
+            
+            // Store current book
+            localStorage.setItem('currentBook', JSON.stringify({
+                id: book_id,
+                title: title,
+                author: author,
+                cover_image: cover_image
+            }));
 
-                // Update page title
-                document.title = `${book.title} - BookHub Reader`;
+            // Update page title
+            document.title = `${title} - BookHub Reader`;
 
-                // Load book content
-                const bookViewer = document.getElementById('bookViewer');
-                bookViewer.src = `../books/samples/sample_chapter.html`;
+            // Load PDF
+            const pdfPath = content_path || '../assets/books/samples/sample.pdf';
+            loadPDF(pdfPath);
 
-                // Update reading list
-                const username = localStorage.getItem('username');
-                const readingList = JSON.parse(localStorage.getItem(`${username}_reading_list`)) || {
-                    want_to_read: [],
-                    currently_reading: [],
-                    completed: []
-                };
+            // Update reading list
+            updateReadingProgress(book_id);
 
-                // Check if book is not in currently reading
-                if (!readingList.currently_reading.includes(bookId)) {
-                    // Remove from other lists if present
-                    readingList.want_to_read = readingList.want_to_read.filter(id => id !== bookId);
-                    readingList.completed = readingList.completed.filter(id => id !== bookId);
-                    
-                    // Add to currently reading
-                    readingList.currently_reading.push(bookId);
-                    localStorage.setItem(`${username}_reading_list`, JSON.stringify(readingList));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error loading book. Redirecting to home page...');
-                window.location.href = 'index.html';
-            });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error loading book. Redirecting to home page...');
+            window.location.href = 'index.html';
+        }
 
         // Update header based on auth state
         updateAuthUI();
+    });
 
-        // Handle iframe theme syncing
-        const syncIframeTheme = () => {
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            bookViewer.contentWindow.postMessage(isDarkMode ? 'dark' : 'light', '*');
-        };
-
-        // Sync theme when iframe loads
-        bookViewer.onload = syncIframeTheme;
-
-        // Listen for theme changes
-        const darkModeToggle = document.querySelector('.dark-mode-toggle');
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', () => {
-                // Wait for theme.js to update the theme
-                setTimeout(syncIframeTheme, 0);
-            });
+    async function loadPDF(pdfPath) {
+        try {
+            pdfDoc = await pdfjsLib.getDocument(pdfPath).promise;
+            document.getElementById('pageCount').textContent = pdfDoc.numPages;
+            renderPage(pageNum);
+        } catch (error) {
+            console.error('Error loading PDF:', error);
+            alert('Error loading PDF file. Please try again later.');
         }
+    }
 
-        // Listen for theme check from iframe
-        window.addEventListener('message', (event) => {
-            if (event.data === 'checkTheme') {
-                const isDarkMode = document.body.classList.contains('dark-mode');
-                event.source.postMessage(isDarkMode ? 'dark' : 'light', '*');
-            }
-        });
+    async function renderPage(num) {
+        try {
+            const page = await pdfDoc.getPage(num);
+            const viewport = page.getViewport({ scale });
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+            document.getElementById('pageNum').textContent = num;
+            
+            // Update progress based on page number
+            updateProgress();
+        } catch (error) {
+            console.error('Error rendering page:', error);
+        }
+    }
+
+    function updateProgress() {
+        if (!pdfDoc) return;
+        const progress = Math.round((pageNum / pdfDoc.numPages) * 100);
+        const book = JSON.parse(localStorage.getItem('currentBook'));
+        if (book) {
+            updateReadingProgress(book.id, progress);
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (pageNum <= 1) return;
+        pageNum--;
+        renderPage(pageNum);
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        renderPage(pageNum);
+    });
+
+    document.getElementById('zoomIn').addEventListener('click', () => {
+        scale *= 1.2;
+        document.getElementById('zoomLevel').textContent = `${Math.round(scale * 100)}%`;
+        renderPage(pageNum);
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', () => {
+        scale /= 1.2;
+        document.getElementById('zoomLevel').textContent = `${Math.round(scale * 100)}%`;
+        renderPage(pageNum);
+    });
+
+    // Handle keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            document.getElementById('prevPage').click();
+        } else if (e.key === 'ArrowRight') {
+            document.getElementById('nextPage').click();
+        }
     });
 
     // Function to update UI based on authentication state
@@ -176,6 +248,44 @@
         localStorage.removeItem('authToken');
         localStorage.removeItem('currentBook');
         window.location.href = 'index.html';
+    }
+
+    // Function to update reading progress
+    async function updateReadingProgress(bookId, progress = 0) {
+        try {
+            const response = await fetch('../api/reading-list/update-progress.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    progress: progress
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update reading progress');
+            }
+
+            // Move book to currently reading list if not already there
+            const moveResponse = await fetch('../api/reading-list/move.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    to_list: 'currently-reading'
+                })
+            });
+
+            if (!moveResponse.ok) {
+                throw new Error('Failed to update reading list');
+            }
+        } catch (error) {
+            console.error('Error updating reading status:', error);
+        }
     }
     </script>
 </body>

@@ -95,7 +95,7 @@ async function showSearchSuggestions(query) {
     }
 
     try {
-        const response = await fetch('../get_books.php');
+        const response = await fetch('/bookhub-1/api/books/list_books.php');
         const text = await response.text();
         const books = parseBookData(text);
         

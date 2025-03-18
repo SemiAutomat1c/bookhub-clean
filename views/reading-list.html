@@ -8,6 +8,19 @@
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
     <link rel="stylesheet" href="../assets/css/reading-list.css">
+    <style>
+    .reading-list-content .book-list {
+        display: none;
+    }
+
+    .reading-list-content .book-list.active {
+        display: block;
+    }
+
+    .empty-list-message {
+        display: none;
+    }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -81,18 +94,20 @@
             <p>Track and manage your reading journey</p>
         </div>
 
+        <!-- Reading List Tabs -->
         <div class="reading-list-tabs">
             <button class="tab-button active" data-list="currently-reading">
-                Currently Reading
+                <i class="fas fa-book-reader"></i> Currently Reading
             </button>
             <button class="tab-button" data-list="want-to-read">
-                Want to Read
+                <i class="fas fa-list"></i> Want to Read
             </button>
             <button class="tab-button" data-list="completed">
-                Completed
+                <i class="fas fa-check-circle"></i> Completed
             </button>
         </div>
 
+        <!-- Reading List Content -->
         <div class="reading-list-content">
             <div id="currently-reading" class="book-list active">
                 <!-- Books will be added here -->
@@ -103,12 +118,14 @@
             <div id="completed" class="book-list">
                 <!-- Books will be added here -->
             </div>
-        </div>
 
-        <div class="empty-state" style="display: none;">
-            <p>No books yet</p>
-            <p>Start building your reading list by adding books from our collection</p>
-            <a href="/bookhub-1/views/search.html" class="browse-books-btn">Browse Books</a>
+            <!-- Empty State -->
+            <div class="empty-state" style="display: none;">
+                <p>Your reading list is empty</p>
+                <a href="index.html" class="browse-books-btn">
+                    <i class="fas fa-search"></i> Browse Books
+                </a>
+            </div>
         </div>
     </main>
 
@@ -116,232 +133,348 @@
     <script src="../src/js/auth.js"></script>
     <script src="../src/js/header.js"></script>
     <script>
+        // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', async () => {
             // Check authentication
             const isAuthenticated = await checkAuthStatus();
             if (!isAuthenticated) {
-                window.location.href = '/bookhub-1/views/sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+                window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
                 return;
             }
 
-            // Load reading lists from server
-            loadReadingLists();
-
-            // Set up tab switching
-            const tabs = document.querySelectorAll('.tab-button');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // Remove active class from all tabs and lists
-                    tabs.forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.book-list').forEach(list => list.classList.remove('active'));
-                    
-                    // Add active class to clicked tab and corresponding list
-                    tab.classList.add('active');
-                    const listId = tab.getAttribute('data-list');
-                    document.getElementById(listId).classList.add('active');
-                });
-            });
+            // Setup tab navigation
+            setupTabButtons();
+            
+            // Load reading lists
+            await loadReadingLists();
         });
 
-        // Function to load reading lists from server
+        // Setup tab buttons
+        function setupTabButtons() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const lists = document.querySelectorAll('.book-list');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons and lists
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    lists.forEach(list => list.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding list
+                    button.classList.add('active');
+                    const listId = button.getAttribute('data-list');
+                    const targetList = document.getElementById(listId);
+                    if (targetList) {
+                        targetList.classList.add('active');
+                    }
+                });
+            });
+        }
+
         async function loadReadingLists() {
             try {
                 const response = await fetch('/bookhub-1/api/reading-list/get.php', {
                     credentials: 'include'
                 });
-                
                 if (!response.ok) {
-                    throw new Error('Failed to load reading lists');
+                    throw new Error('Failed to fetch reading lists');
                 }
 
-                const lists = await response.json();
+                const text = await response.text();
+                const responseLines = text.split('\n');
                 
+                if (responseLines[0] !== 'SUCCESS') {
+                    throw new Error(text);
+                }
+
+                const lists = {
+                    'want-to-read': [],
+                    'currently-reading': [],
+                    'completed': []
+                };
+
+                let currentList = '';
+                for (let i = 1; i < responseLines.length; i++) {
+                    const line = responseLines[i].trim();
+                    if (!line) continue;
+
+                    if (line === 'WANT_TO_READ') {
+                        currentList = 'want-to-read';
+                        continue;
+                    } else if (line === 'CURRENTLY_READING') {
+                        currentList = 'currently-reading';
+                        continue;
+                    } else if (line === 'COMPLETED') {
+                        currentList = 'completed';
+                        continue;
+                    } else if (line === 'NO_BOOKS') {
+                        continue;
+                    }
+
+                    const parts = line.split('|');
+                    if (parts.length < 5) continue;
+
+                    const [id, title, author, cover_image, progress] = parts;
+                    
+                    if (currentList && id && !isNaN(id)) {
+                        lists[currentList].push({
+                            id,
+                            title: title || 'Unknown Title',
+                            author: author || 'Unknown Author',
+                            cover_image: cover_image || 'assets/images/default-cover.jpg',
+                            progress: parseInt(progress) || 0
+                        });
+                    }
+                }
+
                 // Update each list section
-                ['currently-reading', 'want-to-read', 'completed'].forEach(listType => {
-                    const books = lists[listType] || [];
-                    displayBooks(listType, books);
+                Object.keys(lists).forEach(listType => {
+                    displayBooks(listType, lists[listType]);
                 });
 
-                // Show/hide empty state
-                const isEmpty = Object.values(lists).every(list => !list || list.length === 0);
+                // Show empty state only if ALL lists are empty
+                const isEmpty = Object.values(lists).every(list => list.length === 0);
                 document.querySelector('.empty-state').style.display = isEmpty ? 'block' : 'none';
+
+                // Show the active tab's content
+                const activeTab = document.querySelector('.tab-button.active');
+                if (activeTab) {
+                    const activeListId = activeTab.getAttribute('data-list');
+                    const activeList = document.getElementById(activeListId);
+                    if (activeList) {
+                        activeList.classList.add('active');
+                    }
+                }
 
             } catch (error) {
                 console.error('Error loading reading lists:', error);
-                showError('Failed to load reading lists');
+                showError('Failed to load reading lists. Please try refreshing the page.');
             }
         }
 
-        // Function to display books in a list
         function displayBooks(listId, books) {
-            const container = document.getElementById(listId);
-            
+            const listElement = document.getElementById(listId);
+            if (!listElement) return;
+
             if (!books || books.length === 0) {
-                container.innerHTML = '';
+                listElement.innerHTML = `
+                    <div class="empty-list-message">
+                        <p>No books in this list yet</p>
+                    </div>
+                `;
                 return;
             }
 
-            container.innerHTML = books.map(book => `
+            listElement.innerHTML = `<div class="book-grid">` + books.map(book => `
                 <div class="book-card" data-book-id="${book.id}">
-                    <img src="${book.cover_url || '../assets/images/default-cover.jpg'}" 
-                         alt="${book.title}" 
-                         class="book-cover"
-                         onerror="this.src='../assets/images/default-cover.jpg'">
+                    <div class="book-cover">
+                        <img src="${book.cover_image ? '../' + book.cover_image : '../assets/images/default-cover.jpg'}" 
+                             alt="${book.title}" 
+                             onerror="this.src='../assets/images/default-cover.jpg'">
+                    </div>
                     <div class="book-info">
-                        <div>
-                            <h3 class="book-title">${book.title}</h3>
-                            <p class="book-author">by ${book.author}</p>
-                            ${listId === 'currently-reading' ? `
-                                <div class="reading-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress" style="width: ${book.progress || 0}%"></div>
-                                    </div>
-                                    <span class="progress-text">${book.progress || 0}% complete</span>
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">by ${book.author}</p>
+                        ${listId === 'currently-reading' ? `
+                            <div class="reading-progress">
+                                <div class="progress-bar">
+                                    <div class="progress" style="width: ${book.progress}%"></div>
                                 </div>
-                            ` : ''}
-                        </div>
-                        <div class="card-actions">
-                            ${listId === 'currently-reading' ? `
-                                <button class="action-btn" onclick="readBook(${book.id})">
-                                    <i class="fas fa-book-reader"></i>
-                                    Read
+                                <p class="progress-text">${book.progress}% complete</p>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-btn start-reading-btn" onclick="readBook('${book.id}')">
+                                    <i class="fas fa-book-reader"></i> Continue
                                 </button>
-                                <button class="action-btn" onclick="updateProgress(${book.id})">
-                                    <i class="fas fa-tasks"></i>
-                                    Update Progress
+                                <button class="action-btn remove-btn" onclick="removeFromList('${book.id}', '${listId}')">
+                                    <i class="fas fa-times"></i> Remove
                                 </button>
-                                <button class="action-btn" onclick="moveBook(${book.id}, 'currently-reading', 'completed')">
-                                    <i class="fas fa-check"></i>
-                                    Mark Complete
+                            </div>
+                        ` : listId === 'want-to-read' ? `
+                            <div class="action-buttons">
+                                <button class="action-btn start-reading-btn" onclick="startReading('${book.id}')">
+                                    <i class="fas fa-play"></i> Start
                                 </button>
-                            ` : listId === 'want-to-read' ? `
-                                <button class="action-btn" onclick="moveBook(${book.id}, 'want-to-read', 'currently-reading')">
-                                    <i class="fas fa-play"></i>
-                                    Start Reading
+                                <button class="action-btn remove-btn" onclick="removeFromList('${book.id}', '${listId}')">
+                                    <i class="fas fa-times"></i> Remove
                                 </button>
-                            ` : `
-                                <button class="action-btn" onclick="moveBook(${book.id}, 'completed', 'want-to-read')">
-                                    <i class="fas fa-redo"></i>
-                                    Read Again
+                            </div>
+                        ` : `
+                            <div class="action-buttons">
+                                <button class="action-btn start-reading-btn" onclick="readAgain('${book.id}')">
+                                    <i class="fas fa-redo"></i> Read Again
                                 </button>
-                            `}
-                            <button class="action-btn remove-btn" onclick="removeBook(${book.id}, '${listId}')">
-                                <i class="fas fa-times"></i>
-                                Remove
-                            </button>
-                        </div>
+                                <button class="action-btn remove-btn" onclick="removeFromList('${book.id}', '${listId}')">
+                                    <i class="fas fa-times"></i> Remove
+                                </button>
+                            </div>
+                        `}
                     </div>
                 </div>
-            `).join('');
+            `).join('') + `</div>`;
         }
 
-        // Function to move book between lists
-        async function moveBook(bookId, fromList, toList) {
-            try {
-                const response = await fetch('/bookhub-1/api/reading-list/move.php', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        book_id: bookId,
-                        from_list: fromList,
-                        to_list: toList
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to move book');
-                }
-
-                // Reload lists to show updated state
-                loadReadingLists();
-
-            } catch (error) {
-                console.error('Error moving book:', error);
-                showError('Failed to move book');
-            }
-        }
-
-        // Function to remove book from list
-        async function removeBook(bookId, listId) {
-            if (!confirm('Are you sure you want to remove this book from your list?')) {
-                return;
-            }
-
+        async function removeFromList(bookId, listType) {
             try {
                 const response = await fetch('/bookhub-1/api/reading-list/remove.php', {
                     method: 'POST',
-                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain',
                     },
-                    body: JSON.stringify({
-                        book_id: bookId,
-                        list_type: listId
-                    })
+                    body: `book_id:${bookId}`
                 });
 
                 if (!response.ok) {
                     throw new Error('Failed to remove book');
                 }
 
-                // Reload lists to show updated state
+                const text = await response.text();
+                if (!text.startsWith('SUCCESS')) {
+                    throw new Error(text);
+                }
+
+                // Reload the reading lists to update the UI
                 loadReadingLists();
 
             } catch (error) {
                 console.error('Error removing book:', error);
-                showError('Failed to remove book');
+                showError('Failed to remove book from list');
             }
         }
 
-        // Function to update reading progress
-        async function updateProgress(bookId) {
-            const newProgress = prompt('Enter reading progress (0-100):', '0');
-            if (newProgress === null) return;
+        function showError(message) {
+            // Implement error display logic here
+            alert(message);
+        }
 
-            const progress = Math.min(100, Math.max(0, parseInt(newProgress) || 0));
+        async function updateProgress(bookId, currentProgress) {
+            const newProgress = prompt('Enter new progress (0-100):', currentProgress);
+            if (newProgress === null) return; // User cancelled
+
+            const progress = parseInt(newProgress);
+            if (isNaN(progress) || progress < 0 || progress > 100) {
+                showError('Please enter a valid number between 0 and 100');
+                return;
+            }
 
             try {
                 const response = await fetch('/bookhub-1/api/reading-list/update-progress.php', {
                     method: 'POST',
-                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain',
                     },
-                    body: JSON.stringify({
-                        book_id: bookId,
-                        progress: progress
-                    })
+                    body: `book_id:${bookId}|progress:${progress}`
                 });
 
                 if (!response.ok) {
                     throw new Error('Failed to update progress');
                 }
 
-                // Reload lists to show updated state
-                loadReadingLists();
+                const text = await response.text();
+                if (!text.startsWith('SUCCESS')) {
+                    throw new Error(text);
+                }
 
+                // Reload the reading lists to update the UI
+                loadReadingLists();
             } catch (error) {
                 console.error('Error updating progress:', error);
                 showError('Failed to update progress');
             }
         }
 
-        // Function to start reading a book
-        function readBook(bookId) {
-            window.location.href = `/bookhub-1/views/reader.html?book_id=${bookId}`;
+        async function readBook(bookId) {
+            try {
+                // Get book details first
+                const response = await fetch(`/bookhub-1/api/books.php?id=${bookId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get book details');
+                }
+
+                const text = await response.text();
+                if (!text.startsWith('SUCCESS')) {
+                    throw new Error(text);
+                }
+
+                const [_, ...bookData] = text.split('|');
+                const filePath = bookData[7]; // Assuming file_path is the 8th field
+
+                if (!filePath) {
+                    showError('Book file not available');
+                    return;
+                }
+
+                // Open the book reader with the file
+                window.location.href = `/bookhub-1/views/reader.html?book_id=${bookId}`;
+            } catch (error) {
+                console.error('Error opening book:', error);
+                showError('Failed to open book');
+            }
         }
 
-        // Function to show error message
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = message;
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 3000);
+        async function startReading(bookId) {
+            try {
+                // Move book to currently-reading list
+                const response = await fetch('/bookhub-1/api/reading-list/update-status.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: `book_id:${bookId}|list_type:currently-reading`
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update reading status');
+                }
+
+                const text = await response.text();
+                if (!text.startsWith('SUCCESS')) {
+                    throw new Error(text);
+                }
+
+                // Open the book
+                readBook(bookId);
+            } catch (error) {
+                console.error('Error starting book:', error);
+                showError('Failed to start reading book');
+            }
+        }
+
+        async function readAgain(bookId) {
+            try {
+                // Move book back to currently-reading and reset progress
+                const response = await fetch('/bookhub-1/api/reading-list/update-status.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: `book_id:${bookId}|list_type:currently-reading|progress:0`
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update reading status');
+                }
+
+                const text = await response.text();
+                if (!text.startsWith('SUCCESS')) {
+                    throw new Error(text);
+                }
+
+                // Reload the reading lists to update the UI
+                loadReadingLists();
+            } catch (error) {
+                console.error('Error restarting book:', error);
+                showError('Failed to restart book');
+            }
         }
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

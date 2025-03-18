@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="../assets/css/styles.css">
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
-    <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -26,9 +25,8 @@
                     <span class="user-info"></span>
                 </a>
             </div>
-            <button class="dark-mode-toggle">
+            <button id="themeToggle" class="theme-toggle" title="Switch Theme">
                 <i class="fas fa-moon"></i>
-                <i class="fas fa-sun"></i>
             </button>
         </nav>
     </header>
@@ -72,6 +70,13 @@
                     </div>
                     <select id="genreFilter">
                         <option value="">All Genres</option>
+                        <option value="Fiction">Fiction</option>
+                        <option value="Non-Fiction">Non-Fiction</option>
+                        <option value="Mystery">Mystery</option>
+                        <option value="Science Fiction">Science Fiction</option>
+                        <option value="Fantasy">Fantasy</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Thriller">Thriller</option>
                     </select>
                     <select id="sortBy">
                         <option value="title">Sort by Title</option>
@@ -80,12 +85,10 @@
                     </select>
                 </div>
 
-                <div class="books-grid" id="adminBooksGrid">
+                <div id="adminBooksGrid" class="books-grid">
                     <!-- Books will be loaded here -->
                 </div>
             </section>
-
-            <!-- Other sections will be added later -->
         </div>
     </main>
 
@@ -95,19 +98,18 @@
             <span class="close">&times;</span>
             <h2 id="modalTitle">Add New Book</h2>
             <form id="bookForm" class="admin-form">
-                <input type="hidden" id="bookId">
                 <div class="form-group">
                     <label for="title">Title*</label>
-                    <input type="text" id="title" required>
+                    <input type="text" id="title" name="title" required>
                 </div>
                 <div class="form-group">
                     <label for="author">Author*</label>
-                    <input type="text" id="author" required>
+                    <input type="text" id="author" name="author" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="genre">Genre*</label>
-                        <select id="genre" required>
+                        <select id="genre" name="genre" required>
                             <option value="">Select Genre</option>
                             <option value="Fiction">Fiction</option>
                             <option value="Non-Fiction">Non-Fiction</option>
@@ -119,316 +121,35 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="publicationYear">Publication Year*</label>
-                        <input type="number" id="publicationYear" required min="1800" max="2024">
+                        <label for="publication_year">Publication Year*</label>
+                        <input type="number" id="publication_year" name="publication_year" required min="1800" max="2024">
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="description">Description*</label>
-                    <textarea id="description" required rows="4"></textarea>
+                    <textarea id="description" name="description" required rows="4"></textarea>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="coverImage">Cover Image</label>
-                        <input type="file" id="coverImage" accept="image/*">
+                        <label for="cover_image">Cover Image</label>
+                        <input type="file" id="cover_image" name="cover_image" accept="image/*">
                     </div>
                     <div class="form-group">
-                        <label for="bookFile">Book File (PDF)*</label>
-                        <input type="file" id="bookFile" accept=".pdf" required>
+                        <label for="book_file">Book File (PDF)*</label>
+                        <input type="file" id="book_file" name="book_file" accept=".pdf" required>
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="secondary-btn" onclick="closeBookModal()">Cancel</button>
-                    <button type="submit" class="primary-btn">Save Book</button>
+                    <button type="button" class="cancel-btn" onclick="closeBookModal()">Cancel</button>
+                    <button type="submit" class="submit-btn">Save Book</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <style>
-        :root {
-            --card-bg: #ffffff;
-        }
-
-        body.dark-mode {
-            --card-bg: #1e1e1e;
-        }
-
-        .admin-container {
-            display: flex;
-            min-height: calc(100vh - 60px);
-            background: var(--bg-color);
-            margin-top: 80px; /* Add margin to account for fixed header */
-        }
-
-        .admin-sidebar {
-            width: 250px;
-            background: var(--card-bg);
-            border-right: 1px solid var(--border-color);
-            padding: 20px 0;
-        }
-
-        .admin-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .admin-nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
-            color: var(--text-color);
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .admin-nav-item:hover,
-        .admin-nav-item.active {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .admin-content {
-            flex-grow: 1;
-            padding: 20px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .add-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .add-btn:hover {
-            background: var(--primary-color-dark);
-        }
-
-        .filters {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .search-box {
-            position: relative;
-            flex-grow: 1;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 8px 32px 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        .search-box i {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        select {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        .admin-form {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 16px;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .form-group label {
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .books-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .admin-book-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-book-card .book-cover {
-            height: 200px;
-            overflow: hidden;
-        }
-
-        .admin-book-card .book-cover img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .admin-book-card .book-info {
-            padding: 16px;
-        }
-
-        .admin-book-card .book-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .book-actions button {
-            flex: 1;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .edit-btn {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-        }
-
-        .admin-section {
-            display: none;
-        }
-
-        .admin-section.active {
-            display: block;
-        }
-    </style>
-
     <!-- Scripts -->
+    <script src="../src/js/theme.js"></script>
     <script src="../src/js/auth.js"></script>
-    <script src="../src/js/bookComponent.js"></script>
     <script src="../src/js/adminBooks.js"></script>
-    <script>
-        // Check admin access when page loads
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // First check if user is authenticated
-                const isAuthenticated = await checkAuthStatus();
-                if (!isAuthenticated) {
-                    window.location.href = '/bookhub-1/views/sign-in.html';
-                    return;
-                }
-
-                // Then check if user is admin
-                const response = await fetch('/bookhub-1/api/auth/check_admin.php', {
-                    credentials: 'include'
-                });
-                
-                const text = await response.text();
-                const [status, message] = text.split('|');
-                
-                if (status !== 'success') {
-                    // If not admin, redirect to home page
-                    window.location.href = '/bookhub-1/views/index.html';
-                    return;
-                }
-
-                // If admin, initialize the admin interface
-                initializeAdminInterface();
-            } catch (error) {
-                console.error('Error checking admin status:', error);
-                window.location.href = '/bookhub-1/views/index.html';
-            }
-        });
-
-        function initializeAdminInterface() {
-            // Add click handlers for admin navigation
-            document.querySelectorAll('.admin-nav-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const section = item.getAttribute('data-section');
-                    showSection(section);
-                });
-            });
-        }
-
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.admin-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Show selected section
-            const selectedSection = document.getElementById(sectionId + '-section');
-            if (selectedSection) {
-                selectedSection.classList.add('active');
-            }
-
-            // Update active nav item
-            document.querySelectorAll('.admin-nav-item').forEach(item => {
-                item.classList.remove('active');
-                if (item.getAttribute('data-section') === sectionId) {
-                    item.classList.add('active');
-                }
-            });
-        }
-    </script>
 </body>
 </html> 

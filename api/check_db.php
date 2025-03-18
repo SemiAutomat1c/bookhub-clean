@@ -2,7 +2,7 @@
 require_once '../config/database.php';
 
 try {
-    $pdo = getDBConnection();
+    $pdo = getConnection();
     
     // Get all tables
     $stmt = $pdo->query("SHOW TABLES");

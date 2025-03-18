@@ -3,10 +3,11 @@ class BookComponent {
     static createBookCard(book, displayType = 'default') {
         return `
             <div class="book-card" data-book-id="${book.id}">
-                <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" 
+                <img src="${book.cover_image || 'assets/images/covers/default-cover.jpg'}" 
                      alt="${book.title}" 
                      class="book-cover"
-                     onerror="this.src='../assets/images/default-cover.jpg'">
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                     onerror="this.src='https://cdn-icons-png.flaticon.com/512/3145/3145765.png'">
                 <div class="book-info">
                     <h3 class="book-title">${book.title}</h3>
                     <p class="book-author">by ${book.author}</p>
@@ -21,11 +22,14 @@ class BookComponent {
     }
 
     static getRatingDisplay(book) {
-        if (!book.average_rating) return '';
+        const rating = parseFloat(book.average_rating) || 0;
+        const totalRatings = parseInt(book.total_ratings) || 0;
         return `
             <div class="book-rating">
-                ${this.getStarRating(parseFloat(book.average_rating))}
-                <span class="rating-count">(${book.total_ratings || 0})</span>
+                <div class="stars">
+                    ${this.getStarRating(rating)}
+                </div>
+                <span class="rating-count">(${totalRatings} ratings)</span>
             </div>
         `;
     }
@@ -48,6 +52,15 @@ class BookComponent {
                 return `<p class="book-published">Published: ${book.publication_year || 'N/A'}</p>`;
             case 'trending':
                 return this.getRatingDisplay(book);
+            case 'reading':
+                return `
+                    <div class="reading-progress">
+                        <div class="progress-bar">
+                            <div class="progress" style="width: ${book.progress || 0}%"></div>
+                        </div>
+                        <span class="progress-text">${book.progress || 0}% complete</span>
+                    </div>
+                `;
             default:
                 return '';
         }

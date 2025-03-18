@@ -156,53 +156,101 @@
                 day: 'numeric'
             });
 
-            // Load reading stats from server (to be implemented)
+            // Load reading stats from server
             try {
                 const response = await fetch('/bookhub-1/api/user/stats.php', {
                     credentials: 'include'
                 });
                 
                 if (response.ok) {
-                    const stats = await response.json();
-                    document.getElementById('currently-reading-count').textContent = stats.currentlyReading || 0;
-                    document.getElementById('want-to-read-count').textContent = stats.wantToRead || 0;
-                    document.getElementById('completed-count').textContent = stats.completed || 0;
+                    const text = await response.text();
+                    console.log('Stats response:', text); // Debug log
+                    
+                    if (!text.startsWith('SUCCESS')) {
+                        throw new Error(text);
+                    }
+
+                    // Parse the text response
+                    const lines = text.split('\n');
+                    const stats = {};
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const [key, value] = lines[i].split(':');
+                        if (key && value) {
+                            stats[key] = parseInt(value);
+                        }
+                    }
+
+                    // Update stats display
+                    document.getElementById('currently-reading-count').textContent = stats['currently-reading'] || 0;
+                    document.getElementById('want-to-read-count').textContent = stats['want-to-read'] || 0;
+                    document.getElementById('completed-count').textContent = stats['completed'] || 0;
                 }
             } catch (error) {
                 console.error('Error loading reading stats:', error);
             }
 
-            // Load recent activity from server (to be implemented)
+            // Load recent activity from server
             try {
                 const response = await fetch('/bookhub-1/api/user/activity.php', {
                     credentials: 'include'
                 });
                 
                 if (response.ok) {
-                    const activities = await response.json();
+                    const text = await response.text();
+                    console.log('Activity response:', text); // Debug log
+                    
+                    if (!text.startsWith('SUCCESS')) {
+                        throw new Error(text);
+                    }
+
+                    const lines = text.split('\n');
                     const activityList = document.getElementById('activity-list');
                     
-                    if (activities.length === 0) {
+                    if (lines[1] === 'NO_ACTIVITIES') {
                         activityList.innerHTML = '<p class="no-activity">No recent activity</p>';
                         return;
+                    }
+
+                    const activities = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        const [
+                            bookId,
+                            title,
+                            author,
+                            coverImage,
+                            listType,
+                            progress,
+                            type,
+                            message,
+                            addedAt,
+                            lastUpdated
+                        ] = line.split('|');
+
+                        activities.push({
+                            bookId,
+                            title,
+                            type,
+                            message,
+                            date: new Date(lastUpdated)
+                        });
                     }
 
                     activityList.innerHTML = activities.map(activity => `
                         <div class="activity-item">
                             <div class="activity-icon">
-                                ${activity.type === 'currently-reading' ? '<i class="fas fa-book-reader"></i>' :
-                                  activity.type === 'want-to-read' ? '<i class="fas fa-bookmark"></i>' :
-                                  '<i class="fas fa-check-circle"></i>'}
+                                ${activity.type === 'progress' ? '<i class="fas fa-book-reader"></i>' :
+                                  activity.type === 'added' ? '<i class="fas fa-bookmark"></i>' :
+                                  activity.type === 'completed' ? '<i class="fas fa-check-circle"></i>' :
+                                  '<i class="fas fa-sync-alt"></i>'}
                             </div>
                             <div class="activity-details">
-                                <p>
-                                    ${activity.type === 'currently-reading' ? 'Started reading' :
-                                      activity.type === 'want-to-read' ? 'Added to reading list' :
-                                      'Completed'} 
-                                    <strong>${activity.book.title}</strong>
-                                </p>
+                                <p>${activity.message}</p>
                                 <span class="activity-date">
-                                    ${new Date(activity.date).toLocaleDateString()}
+                                    ${activity.date.toLocaleDateString()}
                                 </span>
                             </div>
                         </div>

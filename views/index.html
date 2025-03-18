@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/modal.css">
     <script src="../assets/js/theme.js"></script>
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/script.js"></script>
+    <script src="../src/js/book-modal.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -46,49 +49,47 @@
     </header>
 
     <main>
-        <!-- Continue Reading (with sign-in prompt) -->
-        <section class="book-carousel">
+        <!-- Continue Reading Section -->
+        <section class="books-section">
             <div class="section-header">
                 <h2>Continue Reading</h2>
                 <p class="section-subtitle">Pick up where you left off</p>
             </div>
-            <div class="book-grid">
-                <div class="sign-in-prompt">
-                    <img src="https://cdn-icons-png.flaticon.com/512/2232/2232688.png" alt="Books Icon" class="prompt-icon">
-                    <h3>Track Your Reading Progress</h3>
-                    <p>Sign in to keep track of books you're currently reading</p>
-                    <a href="sign-in.html" class="sign-in-button">Sign In</a>
-                </div>
+            <div id="continue-reading-grid" class="books-grid">
+                <!-- Books will be loaded here -->
             </div>
         </section>
 
-        <!-- Most Recent Popular -->
-        <section class="book-carousel">
+        <!-- Trending Now Section -->
+        <section class="books-section">
             <div class="section-header">
                 <h2>Trending Now</h2>
                 <p class="section-subtitle">Most liked books this week</p>
             </div>
-            <div class="book-grid" id="trending-grid">
+            <div id="trending-grid" class="books-grid">
+                <!-- Books will be loaded here -->
             </div>
         </section>
 
-        <!-- Most Followed New Books -->
-        <section class="book-carousel">
+        <!-- New & Notable Section -->
+        <section class="books-section">
             <div class="section-header">
                 <h2>New & Notable</h2>
-                <p class="section-subtitle">Fresh releases gaining attention</p>
+                <p class="section-subtitle">Fresh additions to our library</p>
             </div>
-            <div class="book-grid" id="new-books-grid">
+            <div id="new-books-grid" class="books-grid">
+                <!-- Books will be loaded here -->
             </div>
         </section>
 
-        <!-- Adapted to Movie -->
-        <section class="book-carousel">
+        <!-- From Page to Screen Section -->
+        <section class="books-section">
             <div class="section-header">
                 <h2>From Page to Screen</h2>
-                <p class="section-subtitle">Books with movie adaptations</p>
+                <p class="section-subtitle">Books that inspired movies</p>
             </div>
-            <div class="book-grid" id="movie-adaptations-grid">
+            <div id="movie-adaptations-grid" class="books-grid">
+                <!-- Books will be loaded here -->
             </div>
         </section>
 
@@ -438,217 +439,7 @@
         }
     </style>
 
-    <!-- Scripts -->
-    <script src="../src/js/auth.js"></script>
-    <script src="../src/js/header.js"></script>
-    <script src="../src/js/bookComponent.js"></script>
-    <script src="../src/js/script.js"></script>
-
     <script>
-        // Load books dynamically
-        async function loadBooks() {
-            try {
-                const response = await fetch('../get_books.php');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const books = await response.json();
-                
-                // Function to create book card HTML
-                function createBookCard(book) {
-                    return `
-                        <div class="book-card" data-book-id="${book.book_id}">
-                            <div class="book-cover">
-                                <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" alt="${book.title}">
-                            </div>
-                            <div class="book-info">
-                                <h3 class="book-title">${book.title}</h3>
-                                <p class="book-author">${book.author}</p>
-                                <div class="book-actions">
-                                    <button class="btn-details" onclick="showBookDetails(${book.book_id}); event.stopPropagation();">
-                                        <i class="fas fa-info-circle"></i>
-                                        Details
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                // Populate trending books
-                const trendingBooks = books.slice(0, 6); // First 6 books
-                const trendingGrid = document.getElementById('trending-grid');
-                trendingGrid.innerHTML = trendingBooks.map(book => createBookCard(book)).join('');
-
-                // Populate new releases
-                const newBooks = books.slice(6, 12); // Next 6 books
-                const newBooksGrid = document.getElementById('new-books-grid');
-                newBooksGrid.innerHTML = newBooks.map(book => createBookCard(book)).join('');
-
-                // Populate movie adaptations
-                const movieBooks = books.slice(12, 18); // Next 6 books
-                const movieGrid = document.getElementById('movie-adaptations-grid');
-                movieGrid.innerHTML = movieBooks.map(book => createBookCard(book)).join('');
-
-                // Add click handlers to all book cards
-                const bookCards = document.querySelectorAll('.book-card');
-                bookCards.forEach(card => {
-                    card.onclick = function() {
-                        const bookId = this.getAttribute('data-book-id');
-                        if (bookId) {
-                            showBookDetails(bookId);
-                        }
-                    };
-                });
-            } catch (error) {
-                console.error('Error loading books:', error);
-            }
-        }
-
-        // Call loadBooks when the page loads
-        document.addEventListener('DOMContentLoaded', loadBooks);
-
-        // Get modal elements
-        const modal = document.getElementById('bookModal');
-        const closeBtn = document.querySelector('.close');
-        let currentBookId = null;
-
-        // Close modal when clicking X
-        closeBtn.onclick = () => {
-            modal.style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = (event) => {
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        // Function to check if user is logged in
-        function isLoggedIn() {
-            const status = checkLoginStatus();
-            console.log('Login status:', status);
-            console.log('Username:', localStorage.getItem('username'));
-            console.log('AuthToken:', localStorage.getItem('authToken'));
-            return status;
-        }
-
-        // Function to start reading a book
-        function startReading(bookId) {
-            if (!bookId) return;
-            window.location.href = `reader.html?book_id=${bookId}`;
-        }
-
-        // Function to add book to reading list
-        function addToReadingList(bookId) {
-            const username = localStorage.getItem('username');
-            const readingList = JSON.parse(localStorage.getItem(`${username}_reading_list`)) || {
-                want_to_read: [],
-                currently_reading: [],
-                completed: []
-            };
-
-            // Check if book is already in any list
-            const allBooks = [
-                ...readingList.want_to_read,
-                ...readingList.currently_reading,
-                ...readingList.completed
-            ];
-
-            if (allBooks.includes(bookId)) {
-                showMessage('This book is already in your reading list!');
-                return;
-            }
-
-            // Add to want_to_read by default
-            readingList.want_to_read.push(bookId);
-            localStorage.setItem(`${username}_reading_list`, JSON.stringify(readingList));
-            
-            showMessage('Book added to your reading list!');
-            modal.style.display = 'none';
-        }
-
-        // Function to show login prompt
-        function showLoginPrompt() {
-            const shouldLogin = confirm('You need to be logged in to use this feature. Would you like to log in now?');
-            if (shouldLogin) {
-                window.location.href = 'sign-in.html';
-            }
-        }
-
-        // Function to show message
-        function showMessage(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.textContent = message;
-            messageDiv.style.position = 'fixed';
-            messageDiv.style.top = '20px';
-            messageDiv.style.left = '50%';
-            messageDiv.style.transform = 'translateX(-50%)';
-            messageDiv.style.padding = '10px 20px';
-            messageDiv.style.backgroundColor = 'var(--primary-color)';
-            messageDiv.style.color = 'white';
-            messageDiv.style.borderRadius = '5px';
-            messageDiv.style.zIndex = '1000';
-            
-            document.body.appendChild(messageDiv);
-            
-            setTimeout(() => {
-                messageDiv.remove();
-            }, 3000);
-        }
-
-        // Function to show book details
-        async function showBookDetails(bookId) {
-            try {
-                const response = await fetch('../get_books.php');
-                const books = await response.json();
-                const book = books.find(b => b.book_id === bookId);
-                
-                if (book) {
-                    // Safely get book properties with defaults
-                    const title = book.title || 'Untitled';
-                    const author = book.author || 'Unknown Author';
-                    const cover_image = book.cover_image || '../assets/images/default-cover.jpg';
-                    const rating = parseFloat(book.rating || 0).toFixed(1);
-                    const total_ratings = book.total_ratings || 0;
-                    const genre = book.genre || 'Uncategorized';
-                    const description = book.description || 'No description available.';
-                    const author_books = book.author_books || 1;
-                    const genre_rating = parseFloat(book.genre_rating || rating).toFixed(1);
-                    const language = book.language || 'Not specified';
-                    const publication_year = book.publication_year || 'Not specified';
-                    const format = book.format || 'E-Book';
-                    const reading_time = book.reading_time || 'Varies';
-
-                    // Update modal content with safe values
-                    document.getElementById('modalBookTitle').textContent = title;
-                    document.getElementById('modalBookAuthor').textContent = author;
-                    document.getElementById('modalBookCover').src = cover_image;
-                    document.getElementById('modalBookCover').onerror = function() {
-                        this.src = '../assets/images/default-cover.jpg';
-                    };
-                    document.getElementById('modalBookRating').textContent = rating;
-                    document.getElementById('modalTotalRatings').textContent = total_ratings;
-                    document.getElementById('modalBookGenre').textContent = genre;
-                    document.getElementById('modalBookDescription').textContent = description;
-                    document.getElementById('modalAuthorBooks').textContent = author_books;
-                    document.getElementById('modalGenreRating').textContent = genre_rating;
-                    document.getElementById('modalBookLanguage').textContent = language;
-                    document.getElementById('modalBookYear').textContent = publication_year;
-                    document.getElementById('modalBookFormat').textContent = format;
-                    document.getElementById('modalReadingTime').textContent = reading_time;
-                    
-                    // Show modal
-                    modal.style.display = 'block';
-                    currentBookId = bookId;
-                }
-            } catch (error) {
-                console.error('Error fetching book details:', error);
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             // Check login status and update UI
             const isUserLoggedIn = isLoggedIn();

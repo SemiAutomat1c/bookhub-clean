@@ -1,5 +1,5 @@
 <?php
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database.php';
 
 // Enable error reporting
 error_reporting(E_ALL);
@@ -26,11 +26,11 @@ try {
     $tempConn->close();
 
     // Get connection to the new database
-    $conn = getDBConnection();
+    $conn = getConnection();
 
     // Create users table
     $sql = "CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
         email VARCHAR(100) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
@@ -48,7 +48,7 @@ try {
 
     // Create books table
     $sql = "CREATE TABLE IF NOT EXISTS books (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        book_id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         author VARCHAR(100) NOT NULL,
         description TEXT,
@@ -68,33 +68,36 @@ try {
         die("Error creating books table: " . $conn->error);
     }
 
-    // Create reading_list table
-    $sql = "CREATE TABLE IF NOT EXISTS reading_list (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+    // Create reading_lists table
+    $sql = "CREATE TABLE IF NOT EXISTS reading_lists (
+        list_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         book_id INT NOT NULL,
+        list_type VARCHAR(50) DEFAULT 'want-to-read',
+        progress INT DEFAULT 0,
         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE,
         UNIQUE KEY unique_user_book (user_id, book_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     if ($conn->query($sql)) {
-        echo "Reading list table created successfully<br>";
+        echo "Reading lists table created successfully<br>";
     } else {
-        die("Error creating reading_list table: " . $conn->error);
+        die("Error creating reading_lists table: " . $conn->error);
     }
 
     // Create reviews table
     $sql = "CREATE TABLE IF NOT EXISTS reviews (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        review_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         book_id INT NOT NULL,
         rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
         review_text TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE,
         UNIQUE KEY unique_user_book_review (user_id, book_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
@@ -111,7 +114,7 @@ try {
     $adminUsername = 'admin';
 
     // Check if admin exists
-    $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    $stmt = $conn->prepare("SELECT user_id FROM users WHERE email = ?");
     $stmt->bind_param("s", $adminEmail);
     $stmt->execute();
     $result = $stmt->get_result();

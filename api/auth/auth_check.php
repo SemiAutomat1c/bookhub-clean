@@ -3,9 +3,19 @@ session_start();
 
 // Set headers
 header('Content-Type: text/plain');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST');
-header('Access-Control-Allow-Headers: Content-Type');
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$allowed_origins = array(
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://localhost:80',
+    'http://localhost:8080'
+);
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST');
+    header('Access-Control-Allow-Headers: Content-Type');
+}
 
 // Debug logging
 error_log("Session data: " . print_r($_SESSION, true));
@@ -38,7 +48,7 @@ try {
         throw new Exception("Database connection failed: " . $conn->connect_error);
     }
 
-    $stmt = $conn->prepare("SELECT id, username, email FROM users WHERE id = ?");
+    $stmt = $conn->prepare("SELECT user_id, username, email FROM users WHERE user_id = ?");
     if (!$stmt) {
         throw new Exception("Failed to prepare statement: " . $conn->error);
     }
@@ -52,7 +62,7 @@ try {
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
         error_log("User found in database: " . print_r($row, true));
-        echo "authenticated|User is logged in|{$row['id']},{$row['username']},{$row['email']}";
+        echo "authenticated|User is logged in|{$row['user_id']},{$row['username']},{$row['email']}";
     } else {
         // User ID in session but not found in database
         error_log("User not found in database for ID: " . $_SESSION['user_id']);

@@ -32,97 +32,69 @@ function parseBookData(text) {
 
 // Store current books data
 let currentBooks = [];
+let isLoading = false;
 
-// Function to perform search
-async function performSearch(query = null) {
-    // Get query from parameter or input
-    const searchQuery = query || searchInput.value.trim();
-    searchInput.value = searchQuery; // Update input if query came from parameter
+// Function to perform search with debounce
+const debounceSearch = debounce(async (query) => {
+    const searchInput = document.getElementById('searchInput');
+    const searchGrid = document.getElementById('search-results-grid');
     
+    if (!searchInput || !searchGrid) return;
+
+    // Show loading state
+    showLoading(true);
+
     try {
-        const response = await fetch('../get_books.php');
+        const response = await fetch(`../api/books/list_books.php?search=${encodeURIComponent(query)}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Search failed');
+
         const text = await response.text();
-        const books = parseBookData(text);
-        currentBooks = books; // Store books for filtering
-        
-        // Get current filter values
-        const filters = {
-            genre: document.getElementById('genre').value,
-            rating: parseFloat(document.getElementById('rating').value),
-            availability: document.getElementById('availability').value
-        };
-        
-        // Apply filters and search
-        const filteredBooks = filterBooks(books, searchQuery, filters);
-        
-        // Sort results
-        const sortBy = document.getElementById('sort').value;
-        const sortedBooks = sortBooks(filteredBooks, sortBy);
-        
-        // Display results
-        displayResults(sortedBooks);
+        if (text.startsWith('ERROR')) throw new Error(text.substring(6));
 
-        // Update URL without reloading
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set('q', searchQuery);
-        window.history.pushState({}, '', newUrl);
+        const books = text.split('\n')
+            .filter(line => line.trim() && !line.startsWith('SUCCESS'))
+            .map(line => {
+                const [id, title, author, description, genre, year, cover, file_path, file_type] = line.split('|');
+                return { 
+                    book_id: parseInt(id), 
+                    title, 
+                    author, 
+                    description, 
+                    genre, 
+                    publication_year: year, 
+                    cover_image: cover, 
+                    file_path,
+                    file_type
+                };
+            });
+
+        currentBooks = books;
+        applyFilters(); // Apply filters to the new results
     } catch (error) {
-        console.error('Error fetching books:', error);
-        document.getElementById('results-grid').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-circle"></i>
-                <p>Error loading books. Please try again.</p>
-            </div>
-        `;
+        console.error('Search error:', error);
+        showError('Failed to perform search. Please try again.');
+    } finally {
+        showLoading(false);
     }
-}
-
-// Function to filter books based on search query and filters
-function filterBooks(books, query, filters) {
-    return books.filter(book => {
-        // Search query filter
-        const searchMatch = !query || [
-            book.title,
-            book.author,
-            book.genre,
-            book.description
-        ].some(field => 
-            field && field.toLowerCase().includes(query.toLowerCase())
-        );
-
-        // Genre filter
-        const genreMatch = !filters.genre || book.genre === filters.genre;
-
-        // Rating filter
-        const ratingMatch = !filters.rating || parseFloat(book.rating) >= filters.rating;
-
-        // Availability filter
-        const availabilityMatch = !filters.availability || 
-            (filters.availability === 'available' && book.file_path) ||
-            (filters.availability === 'unavailable' && !book.file_path);
-
-        return searchMatch && genreMatch && ratingMatch && availabilityMatch;
-    });
-}
-
-// Function to sort books
-function sortBooks(books, sortBy) {
-    const sortFunctions = {
-        'relevance': (a, b) => b.popularity - a.popularity,
-        'title': (a, b) => a.title.localeCompare(b.title),
-        'author': (a, b) => a.author.localeCompare(b.author),
-        'rating': (a, b) => b.rating - a.rating
-    };
-
-    return [...books].sort(sortFunctions[sortBy] || sortFunctions['relevance']);
-}
+}, 300);
 
 // Function to display search results
-function displayResults(books) {
-    const resultsGrid = document.getElementById('results-grid');
+function displaySearchResults(books) {
+    const searchGrid = document.getElementById('search-results-grid');
+    const resultsCount = document.getElementById('results-count');
     
+    if (!searchGrid) return;
+
+    // Update results count
+    if (resultsCount) {
+        resultsCount.textContent = books.length;
+    }
+
     if (books.length === 0) {
-        resultsGrid.innerHTML = `
+        searchGrid.innerHTML = `
             <div class="no-results">
                 <i class="fas fa-search"></i>
                 <p>No books found matching your criteria.</p>
@@ -131,59 +103,120 @@ function displayResults(books) {
         return;
     }
 
-    resultsGrid.innerHTML = books.map(book => `
-        <div class="book-card" data-book-id="${book.id}">
-            <img src="${book.cover || '../assets/images/default-cover.jpg'}" 
-                 alt="${book.title}" 
-                 class="book-cover"
-                 onerror="this.src='../assets/images/default-cover.jpg'">
+    searchGrid.innerHTML = books.map(book => `
+        <div class="book-card" onclick="showBookModal(${book.book_id})">
+            <div class="book-cover">
+                <img src="${book.cover_image ? '../' + book.cover_image.replace(/^\/+/, '') : '../assets/images/default-cover.jpg'}" 
+                     alt="${book.title}"
+                     onerror="this.src='../assets/images/default-cover.jpg'">
+            </div>
             <div class="book-info">
                 <h3 class="book-title">${book.title}</h3>
-                <p class="book-author">${book.author}</p>
-                <div class="book-rating">
-                    ${getStarRating(book.rating)}
-                    <span class="rating-count">(${book.ratingCount})</span>
-                </div>
-                <p class="book-genre">${book.genre}</p>
-                <button class="view-details" onclick="showBookDetails('${book.id}')">
-                    View Details
-                </button>
+                <p class="book-author">by ${book.author}</p>
+                ${book.genre ? `<span class="book-genre">${book.genre}</span>` : ''}
+                ${book.publication_year ? `<span class="book-year">${book.publication_year}</span>` : ''}
             </div>
         </div>
     `).join('');
 }
 
-// Helper function to generate star rating HTML
-function getStarRating(rating) {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
-    return `
-        ${'<i class="fas fa-star"></i>'.repeat(fullStars)}
-        ${hasHalfStar ? '<i class="fas fa-star-half-alt"></i>' : ''}
-        ${'<i class="far fa-star"></i>'.repeat(emptyStars)}
+// Function to show loading state
+function showLoading(show) {
+    const searchGrid = document.getElementById('search-results-grid');
+    if (!searchGrid) return;
+
+    if (show) {
+        searchGrid.innerHTML = `
+            <div class="loading-results">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Searching books...</p>
+            </div>
+        `;
+    }
+}
+
+// Function to show error message
+function showError(message) {
+    const searchGrid = document.getElementById('search-results-grid');
+    if (!searchGrid) return;
+
+    searchGrid.innerHTML = `
+        <div class="no-results">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>${message}</p>
+        </div>
     `;
 }
 
-// Initialize search functionality
-document.addEventListener('DOMContentLoaded', () => {
-    // Get search query from URL if present
-    const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('q');
-    
-    if (query) {
-        document.getElementById('search-input').value = query;
-        performSearch(query);
+// Function to apply filters
+async function applyFilters() {
+    const genre = document.getElementById('genre')?.value || 'all';
+    const language = document.getElementById('language')?.value || 'all';
+    const year = document.getElementById('year')?.value || 'all';
+    const rating = document.getElementById('rating')?.value || '0';
+    const availability = document.getElementById('availability')?.value || 'all';
+    const sort = document.getElementById('sort-select')?.value || 'relevance';
+
+    let filteredBooks = [...currentBooks];
+
+    // Apply genre filter
+    if (genre !== 'all') {
+        filteredBooks = filteredBooks.filter(book => book.genre.toLowerCase() === genre.toLowerCase());
     }
 
-    // Set up event listeners
-    document.getElementById('search-input').addEventListener('input', debounce(performSearch, 300));
-    document.getElementById('genre').addEventListener('change', () => performSearch());
-    document.getElementById('rating').addEventListener('change', () => performSearch());
-    document.getElementById('availability').addEventListener('change', () => performSearch());
-    document.getElementById('sort').addEventListener('change', () => performSearch());
-});
+    // Apply language filter
+    if (language !== 'all') {
+        filteredBooks = filteredBooks.filter(book => book.language?.toLowerCase() === language.toLowerCase());
+    }
+
+    // Apply year filter
+    if (year !== 'all') {
+        filteredBooks = filteredBooks.filter(book => book.publication_year === year);
+    }
+
+    // Apply rating filter
+    if (rating !== '0') {
+        filteredBooks = filteredBooks.filter(book => (book.rating || 0) >= parseInt(rating));
+    }
+
+    // Apply availability filter
+    if (availability !== 'all') {
+        filteredBooks = filteredBooks.filter(book => {
+            if (availability === 'ebook') return book.file_type === 'pdf' || book.file_type === 'epub';
+            if (availability === 'audiobook') return book.file_type === 'mp3';
+            return true;
+        });
+    }
+
+    // Apply sorting
+    switch (sort) {
+        case 'rating':
+            filteredBooks.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            break;
+        case 'date':
+            filteredBooks.sort((a, b) => parseInt(b.publication_year) - parseInt(a.publication_year));
+            break;
+        case 'title':
+            filteredBooks.sort((a, b) => a.title.localeCompare(b.title));
+            break;
+    }
+
+    displaySearchResults(filteredBooks);
+}
+
+// Function to reset filters
+function resetFilters() {
+    // Reset all filter selects to their default values
+    document.getElementById('genre').value = 'all';
+    document.getElementById('language').value = 'all';
+    document.getElementById('year').value = 'all';
+    document.getElementById('rating').value = '0';
+    document.getElementById('availability').value = 'all';
+    document.getElementById('sort-select').value = 'relevance';
+
+    // Re-apply filters (which will now show all books)
+    applyFilters();
+}
 
 // Debounce helper function
 function debounce(func, wait) {
@@ -196,4 +229,43 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
-};
+}
+
+// Initialize search functionality
+document.addEventListener('DOMContentLoaded', () => {
+    // Set up search input handler
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => debounceSearch(e.target.value.trim()));
+    }
+
+    // Set up filter button handlers
+    const applyFiltersBtn = document.getElementById('apply-filters');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', applyFilters);
+    }
+
+    const resetFiltersBtn = document.getElementById('reset-filters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', resetFilters);
+    }
+
+    // Set up filter change handlers
+    ['genre', 'language', 'year', 'rating', 'availability', 'sort-select'].forEach(filterId => {
+        const filterElement = document.getElementById(filterId);
+        if (filterElement) {
+            filterElement.addEventListener('change', applyFilters);
+        }
+    });
+
+    // Load initial books
+    debounceSearch('');
+
+    // Check for search query in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q');
+    if (queryParam) {
+        searchInput.value = queryParam;
+        debounceSearch(queryParam);
+    }
+});

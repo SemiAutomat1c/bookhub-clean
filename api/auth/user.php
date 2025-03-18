@@ -26,7 +26,7 @@ try {
     $user_id = Security::getCurrentUserId();
 
     // Get database connection
-    $conn = getDBConnection();
+    $conn = getConnection();
 
     // Get user information
     $stmt = $conn->prepare("

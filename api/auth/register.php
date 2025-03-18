@@ -48,9 +48,9 @@ try {
     }
 
     // Get database connection
-    $conn = getConnection();
-    if (!$conn) {
-        throw new Exception("Database connection failed");
+    $conn = new mysqli('localhost', 'root', '', 'bookhub');
+    if ($conn->connect_error) {
+        throw new Exception("Database connection failed: " . $conn->connect_error);
     }
 
     // Sanitize and validate input
@@ -91,7 +91,7 @@ try {
     }
 
     // Check if email already exists
-    $check_email = $conn->query("SELECT id FROM users WHERE email = '" . $conn->real_escape_string($email) . "'");
+    $check_email = $conn->query("SELECT user_id FROM users WHERE email = '" . $conn->real_escape_string($email) . "'");
     if ($check_email->num_rows > 0) {
         http_response_code(409);
         echo "error|Email already exists";

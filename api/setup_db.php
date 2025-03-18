@@ -2,7 +2,7 @@
 require_once '../config/database.php';
 
 try {
-    $pdo = getDBConnection();
+    $pdo = getConnection();
     
     // Drop tables in correct order
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");

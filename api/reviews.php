@@ -6,7 +6,7 @@ require_once '../auth_check.php';
 header('Content-Type: text/plain');
 
 // Get database connection
-$conn = getDBConnection();
+$conn = getConnection();
 
 // Get request method
 $method = $_SERVER['REQUEST_METHOD'];
