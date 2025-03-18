@@ -1,0 +1,8 @@
+The Great Gatsby|F. Scott Fitzgerald|https://covers.openlibrary.org/b/id/6498519-L.jpg|A story of decadence and excess...|Classic Literature|1925||pdf
+To Kill a Mockingbird|Harper Lee|https://covers.openlibrary.org/b/id/12009823-L.jpg|A story of racial injustice...|Classic Literature|1960||pdf
+1984|George Orwell|https://covers.openlibrary.org/b/id/7222246-L.jpg|A dystopian social science fiction...|Science Fiction|1949||pdf
+The Seven Husbands of Evelyn Hugo|Taylor Jenkins Reid|https://covers.openlibrary.org/b/id/12733556-L.jpg|A gripping story of old Hollywood...|Historical Fiction|2017||pdf
+Lessons in Chemistry|Bonnie Garmus|https://covers.openlibrary.org/b/id/12988079-L.jpg|A debut novel about a female chemist...|Historical Fiction|2022||pdf
+Project Hail Mary|Andy Weir|https://covers.openlibrary.org/b/id/10389354-L.jpg|A lone astronaut must save humanity...|Science Fiction|2021||pdf
+Tomorrow, and Tomorrow, and Tomorrow|Gabrielle Zevin|https://covers.openlibrary.org/b/id/12979164-L.jpg|A story about friendship, art, love, and games...|Literary Fiction|2022||pdf
+The Demon in the Mountain|Grace D. Li|https://covers.openlibrary.org/b/id/12812984-L.jpg|A thrilling heist story...|Mystery|2023||pdf

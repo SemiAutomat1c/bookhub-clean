@@ -1,8 +1,41 @@
 // Function to check if user is logged in
-function checkLoginStatus() {
-    const isLoggedIn = localStorage.getItem('username') !== null && localStorage.getItem('authToken') !== null;
-    document.body.classList.toggle('logged-in', isLoggedIn);
-    return isLoggedIn;
+async function checkLoginStatus() {
+    try {
+        const response = await fetch('/bookhub-1/api/auth/auth_check.php', {
+            credentials: 'include'
+        });
+        
+        const text = await response.text();
+        debugLog('Auth Check Response', text);
+        
+        const [status, message, userData] = text.split('|');
+        
+        if (status === 'authenticated') {
+            const [userId, username, email] = userData.split(',');
+            localStorage.setItem('user', `${userId},${username},${email}`);
+            updateHeader(true, { id: userId, username, email });
+            return true;
+        } else {
+            localStorage.removeItem('user');
+            updateHeader(false);
+            return false;
+        }
+    } catch (error) {
+        debugLog('Auth Check Error', error);
+        localStorage.removeItem('user');
+        updateHeader(false);
+        return false;
+    }
+}
+
+// Function to get current user
+function getCurrentUser() {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+        const [userId, username, email] = userStr.split(',');
+        return { id: userId, username, email };
+    }
+    return null;
 }
 
 // Function to handle search
@@ -23,6 +56,37 @@ function performSearch() {
     }
 }
 
+// Helper function to parse book data from text format
+function parseBookData(text) {
+    return text.split('\n').map(line => {
+        const [
+            book_id,
+            title,
+            author,
+            cover_image,
+            description,
+            genre,
+            file_path,
+            file_type,
+            average_rating,
+            total_ratings
+        ] = line.split('|');
+
+        return {
+            id: book_id,
+            title,
+            author,
+            cover: cover_image,
+            description,
+            genre,
+            file_path,
+            file_type,
+            rating: parseFloat(average_rating),
+            ratingCount: parseInt(total_ratings)
+        };
+    });
+}
+
 // Function to show search suggestions
 async function showSearchSuggestions(query) {
     if (!query) {
@@ -32,7 +96,8 @@ async function showSearchSuggestions(query) {
 
     try {
         const response = await fetch('../get_books.php');
-        const books = await response.json();
+        const text = await response.text();
+        const books = parseBookData(text);
         
         // Filter books based on query
         const suggestions = books.filter(book => {
@@ -49,7 +114,7 @@ async function showSearchSuggestions(query) {
         // Create suggestions HTML
         const suggestionsHtml = suggestions.map(book => `
             <div class="suggestion-item" onclick="window.location.href='search.html?q=${encodeURIComponent(book.title)}'">
-                <img src="${book.cover_image || '../assets/images/default-cover.jpg'}" alt="${book.title}" class="suggestion-cover">
+                <img src="${book.cover || '../assets/images/default-cover.jpg'}" alt="${book.title}" class="suggestion-cover">
                 <div class="suggestion-info">
                     <div class="suggestion-title">${book.title}</div>
                     <div class="suggestion-author">by ${book.author}</div>
@@ -68,17 +133,66 @@ async function showSearchSuggestions(query) {
 }
 
 // Function to handle logout
-function logout() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('username');
-    localStorage.removeItem('user');
-    checkLoginStatus();
-    window.location.href = '/bookhub/views/index.html';
+async function logout() {
+    debugLog('Logout', 'Attempting logout...');
+    try {
+        const response = await fetch('/bookhub-1/api/auth/logout.php', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const text = await response.text();
+        debugLog('Logout Response', text);
+
+        // Clear user data regardless of response
+        localStorage.removeItem('user');
+        currentUser = null;
+
+        // Update UI
+        updateHeader(false);
+
+        // Redirect to sign-in page
+        window.location.href = '/bookhub-1/views/sign-in.html';
+    } catch (error) {
+        debugLog('Logout Error', error);
+        // Still clear data and redirect even if logout fails
+        localStorage.removeItem('user');
+        currentUser = null;
+        updateHeader(false);
+        window.location.href = '/bookhub-1/views/sign-in.html';
+    }
 }
 
-// Initialize header functionality
-document.addEventListener('DOMContentLoaded', () => {
-    checkLoginStatus();
+// Function to update header state
+function updateHeader(isAuthenticated, userData = null) {
+    debugLog('Header Update', 'Updating header state', { isAuthenticated, userData });
+    
+    // Add or remove logged-in class from body
+    if (isAuthenticated) {
+        document.body.classList.add('logged-in');
+    } else {
+        document.body.classList.remove('logged-in');
+    }
+
+    const userInfoElements = document.querySelectorAll('.user-info');
+
+    // Update user info elements
+    if (isAuthenticated && userData) {
+        userInfoElements.forEach(element => {
+            element.textContent = userData.username;
+        });
+    }
+
+    debugLog('Header Update', 'Header update complete');
+}
+
+// Initialize header on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    debugLog('Header Init', 'Initializing header');
+    
+    // Check authentication status
+    const isAuthenticated = await checkLoginStatus();
+    debugLog('Initial Auth Status', { isAuthenticated });
 
     // Set active nav button based on current page
     const currentPage = window.location.pathname;
@@ -86,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const href = button.getAttribute('href');
         if (href && currentPage.includes(href)) {
             button.classList.add('active');
+            debugLog('Active Button Set', { href, currentPage });
         }
     });
 
@@ -131,3 +246,4 @@ document.addEventListener('DOMContentLoaded', () => {
 // Make functions globally available
 window.logout = logout;
 window.performSearch = performSearch;
+window.updateHeader = updateHeader;

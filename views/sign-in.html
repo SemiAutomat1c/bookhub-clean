@@ -32,16 +32,10 @@
             <a href="search.html" class="nav-button">Search</a>
             <a href="reading-list.html" class="nav-button protected-feature">My List</a>
             <div class="auth-buttons">
-                <div class="profile-dropdown protected-feature">
-                    <button class="profile-button nav-button">
+                <a href="profile.html" class="nav-button protected-feature">
                         <i class="fas fa-user"></i>
                         <span>Profile</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="profile.html">View Profile</a>
-                        <a href="#" onclick="logout()">Logout</a>
-                    </div>
-                </div>
+                </a>
                 <a href="sign-in.html" class="nav-button signed-out-only active">Sign In</a>
             </div>
             <button class="dark-mode-toggle">
@@ -82,6 +76,10 @@
     </script>
 
     <main class="sign-in-main">
+        <!-- Global message containers -->
+        <div id="global-error-container" class="alert alert-danger" style="display: none;"></div>
+        <div id="global-success-container" class="alert alert-success" style="display: none;"></div>
+
         <div class="sign-in-container">
             <img src="../assets/images/logo22.jpg" alt="BookHub Logo" class="sign-in-logo light-logo">
             <img src="../assets/images/logo11.jpg" alt="BookHub Logo" class="sign-in-logo dark-logo">
@@ -94,7 +92,7 @@
             <form id="signInForm" class="sign-in-form">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="username" name="email" required>
+                    <input type="email" id="email" name="email" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -131,10 +129,10 @@
                 <h1 class="sign-up-title">Create Account</h1>
                 <p class="sign-up-subtitle">Join our community of book lovers</p>
             </div>
-            <form class="sign-up-form">
+            <form id="signUpForm" class="sign-up-form">
                 <div class="form-group">
                     <label for="fullname">Full Name</label>
-                    <input type="text" id="fullname" name="fullname" required>
+                    <input type="text" id="fullname" name="full_name" required>
                 </div>
                 <div class="form-group">
                     <label for="signup-email">Email</label>
@@ -142,11 +140,20 @@
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password</label>
-                    <input type="password" id="signup-password" name="password" required>
+                    <div class="password-input-container">
+                        <input type="password" id="signup-password" name="password" required minlength="8">
+                        <i class="fas fa-eye password-toggle"></i>
+                    </div>
+                    <div class="password-requirements">
+                        Password must be at least 8 characters long
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" name="confirm-password" required>
+                    <div class="password-input-container">
+                        <input type="password" id="confirm-password" name="confirm_password" required>
+                        <i class="fas fa-eye password-toggle"></i>
+                    </div>
                 </div>
                 <button type="submit" class="sign-up-button">Create Account</button>
                 <p class="switch-form-prompt">
@@ -156,43 +163,133 @@
         </div>
     </main>
 
+    <!-- Scripts -->
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/theme.js"></script>
+    <script src="../src/js/script.js"></script>
     <script>
+        function clearMessages() {
+            const errorContainer = document.getElementById('global-error-container');
+            const successContainer = document.getElementById('global-success-container');
+            if (errorContainer) {
+                errorContainer.style.display = 'none';
+                errorContainer.textContent = '';
+            }
+            if (successContainer) {
+                successContainer.style.display = 'none';
+                successContainer.textContent = '';
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('global-error-container');
+            if (errorContainer) {
+                errorContainer.textContent = message;
+                errorContainer.style.display = 'block';
+                errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function showSuccess(message) {
+            const successContainer = document.getElementById('global-success-container');
+            if (successContainer) {
+                successContainer.textContent = message;
+                successContainer.style.display = 'block';
+                successContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('signInForm');
-            
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                
-                // For demo, just check if fields are not empty
-                if (username && password) {
-                    // Store auth token
-                    localStorage.setItem('authToken', 'demo_token');
+            const signInForm = document.getElementById('signInForm');
+            const signUpForm = document.getElementById('signUpForm');
+            const switchToSignup = document.querySelector('.switch-to-signup');
+            const switchToSignin = document.querySelector('.switch-to-signin');
+
+            // Initially hide the sign-up form
+            if (signUpForm) {
+                signUpForm.style.display = 'none';
+                signUpForm.parentElement.querySelector('.sign-up-title').style.display = 'none';
+                signUpForm.parentElement.querySelector('.sign-up-subtitle').style.display = 'none';
+            }
+
+            // Switch between forms
+            if (switchToSignup) {
+                switchToSignup.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    signInForm.style.display = 'none';
+                    signInForm.parentElement.querySelector('.sign-in-title').style.display = 'none';
+                    signInForm.parentElement.querySelector('.sign-in-subtitle').style.display = 'none';
+                    signUpForm.style.display = 'block';
+                    signUpForm.parentElement.querySelector('.sign-up-title').style.display = 'block';
+                    signUpForm.parentElement.querySelector('.sign-up-subtitle').style.display = 'block';
+                });
+            }
+
+            if (switchToSignin) {
+                switchToSignin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    signUpForm.style.display = 'none';
+                    signUpForm.parentElement.querySelector('.sign-up-title').style.display = 'none';
+                    signUpForm.parentElement.querySelector('.sign-up-subtitle').style.display = 'none';
+                    signInForm.style.display = 'block';
+                    signInForm.parentElement.querySelector('.sign-in-title').style.display = 'block';
+                    signInForm.parentElement.querySelector('.sign-in-subtitle').style.display = 'block';
+                });
+            }
+
+            // Handle sign in
+            if (signInForm) {
+                signInForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    clearMessages();
+
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+
+                    try {
+                        await login(email, password);
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        showError(error.message || 'An error occurred during login');
+                    }
+                });
+            }
+
+            // Handle sign up
+            if (signUpForm) {
+                signUpForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    clearMessages();
+
+                    const formData = new FormData(signUpForm);
                     
-                    // Store user data
-                    const userData = {
-                        username: username,
-                        email: username + '@example.com', // Demo email
-                        memberSince: new Date().toISOString()
-                    };
-                    localStorage.setItem('userData', JSON.stringify(userData));
-                    
-                    // Get return URL from query params or default to index
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const returnUrl = urlParams.get('returnUrl') || 'index.html';
-                    
-                    // Redirect
-                    window.location.href = returnUrl;
-                } else {
-                    alert('Please fill in all fields');
-                }
-            });
+                    // Validate password match
+                    const password = formData.get('password');
+                    const confirmPassword = formData.get('confirm_password');
+
+                    if (password !== confirmPassword) {
+                        showError('Passwords do not match');
+                        return;
+                    }
+
+                    // Validate password strength
+                    if (password.length < 8) {
+                        showError('Password must be at least 8 characters long');
+                        return;
+                    }
+
+                    try {
+                        const success = await register(formData);
+                        if (success) {
+                            signUpForm.reset();
+                        }
+                    } catch (error) {
+                        console.error('Registration error:', error);
+                        showError(error.message || 'Registration failed. Please try again.');
+                    }
+                });
+            }
         });
     </script>
-
-    <script src="../src/js/script.js"></script>
-    <script src="../src/js/auth.js"></script>
 </body>
 </html>

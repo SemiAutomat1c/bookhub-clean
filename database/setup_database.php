@@ -61,32 +61,60 @@ foreach ($files as $file) {
     }
 }
 
-// Import sample books from books.json if books table is empty
+// Import sample books from text file if books table is empty
 $result = $conn->query("SELECT COUNT(*) as count FROM books");
 $row = $result->fetch_assoc();
 
 if ($row['count'] == 0) {
-    echo "Importing sample books from books.json...<br>";
-    $jsonData = file_get_contents(__DIR__ . '/../books.json');
-    $data = json_decode($jsonData, true);
+    echo "Importing sample books from books.txt...<br>";
+    $booksData = file_get_contents(__DIR__ . '/../books.txt');
+    $books = array_filter(explode("\n", $booksData));
     
-    if ($data && isset($data['books'])) {
-        foreach ($data['books'] as $book) {
-            $title = $conn->real_escape_string($book['title']);
-            $author = $conn->real_escape_string($book['author']);
-            $cover = $conn->real_escape_string($book['cover']);
-            $description = $conn->real_escape_string($book['description']);
-            $year = isset($book['published']) ? intval($book['published']) : 'NULL';
-            $genre = isset($book['genre']) ? "'" . $conn->real_escape_string($book['genre']) . "'" : 'NULL';
-            
-            $sql = "INSERT INTO books (title, author, cover_image, description, publication_year, genre) 
-                    VALUES ('$title', '$author', '$cover', '$description', $year, $genre)";
-            
-            if ($conn->query($sql) === TRUE) {
-                echo "Imported book: $title<br>";
-            } else {
-                echo "Error importing book $title: " . $conn->error . "<br>";
-            }
+    foreach ($books as $book) {
+        list(
+            $title,
+            $author,
+            $cover,
+            $description,
+            $genre,
+            $year,
+            $file_path,
+            $file_type
+        ) = array_pad(explode('|', $book), 8, null);
+        
+        $title = $conn->real_escape_string($title);
+        $author = $conn->real_escape_string($author);
+        $cover = $conn->real_escape_string($cover);
+        $description = $conn->real_escape_string($description);
+        $genre = $genre ? "'" . $conn->real_escape_string($genre) . "'" : 'NULL';
+        $year = $year ? intval($year) : 'NULL';
+        $file_path = $file_path ? "'" . $conn->real_escape_string($file_path) . "'" : 'NULL';
+        $file_type = $file_type ? "'" . $conn->real_escape_string($file_type) . "'" : 'NULL';
+        
+        $sql = "INSERT INTO books (
+                    title, 
+                    author, 
+                    cover_image, 
+                    description, 
+                    genre, 
+                    publication_year,
+                    file_path,
+                    file_type
+                ) VALUES (
+                    '$title',
+                    '$author',
+                    '$cover',
+                    '$description',
+                    $genre,
+                    $year,
+                    $file_path,
+                    $file_type
+                )";
+        
+        if ($conn->query($sql) === TRUE) {
+            echo "Imported book: $title<br>";
+        } else {
+            echo "Error importing book $title: " . $conn->error . "<br>";
         }
     }
 }

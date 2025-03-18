@@ -49,80 +49,143 @@ function initializePage() {
     }
 }
 
-function loadBooks(listType) {
-    // Get the book grid for the current tab
-    const bookGrid = document.querySelector(`#${listType} .book-grid`);
-    if (!bookGrid) return;
-
-    // Get reading list from localStorage
-    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-    const books = readingList[listType] || [];
-
-    if (books.length === 0) {
-        bookGrid.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-book-open"></i>
-                <h3>No books yet</h3>
-                <p>Start building your reading list by adding books from our collection</p>
-                <a href="../index.html" class="browse-books-btn">Browse Books</a>
-            </div>
-        `;
-        return;
+// Helper functions for text format handling
+function parseTextResponse(text) {
+    const [type, ...parts] = text.split('|');
+    if (type === 'ERROR') {
+        throw new Error(parts[0]);
     }
-
-    // Display books
-    bookGrid.innerHTML = books.map(book => `
-        <div class="book-card" data-book-id="${book.id}">
-            <img src="${book.cover || 'https://cdn-icons-png.flaticon.com/512/3145/3145765.png'}" 
-                 alt="${book.title}" 
-                 class="book-cover"
-                 onerror="this.src='https://cdn-icons-png.flaticon.com/512/3145/3145765.png'">
-            <div class="book-info">
-                <h3 class="book-title">${book.title}</h3>
-                <p class="book-author">${book.author}</p>
-                ${listType === 'currently-reading' ? `
-                    <div class="book-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${book.progress || 0}%"></div>
-                        </div>
-                        <p class="progress-text">${book.progress || 0}% Complete</p>
-                    </div>
-                ` : ''}
-                <button class="remove-book-btn" onclick="removeBook('${book.id}', '${listType}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-
-    // Add click listeners to book cards
-    const bookCards = bookGrid.querySelectorAll('.book-card');
-    bookCards.forEach(card => {
-        card.addEventListener('click', (e) => {
-            // Don't trigger if clicking the remove button
-            if (e.target.closest('.remove-book-btn')) return;
-
-            const bookId = card.dataset.bookId;
-            const book = books.find(b => b.id === bookId);
-            if (book) {
-                showBookDetails(book);
-            }
-        });
-    });
+    return { type, parts };
 }
 
-function removeBook(bookId, listType) {
-    // Get current reading list
-    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
+function parseBookData(text) {
+    const books = {
+        'currently-reading': [],
+        'want-to-read': [],
+        'completed': []
+    };
     
-    // Remove book from the specified list
-    if (readingList[listType]) {
-        readingList[listType] = readingList[listType].filter(book => book.id !== bookId);
-        localStorage.setItem('readingList', JSON.stringify(readingList));
+    const { type, parts } = parseTextResponse(text);
+    if (type === 'DATA') {
+        if (parts[0] === 'no_books') {
+            return books;
+        }
+        
+        for (let i = 0; i < parts.length; i += 9) {
+            if (parts[i] === 'book') {
+                const book = {
+                    id: parts[i + 1],
+                    list_type: parts[i + 2],
+                    title: parts[i + 3],
+                    author: parts[i + 4],
+                    cover: parts[i + 5],
+                    description: parts[i + 6],
+                    rating: parts[i + 7],
+                    genre: parts[i + 8]
+                };
+                books[book.list_type].push(book);
+            }
+        }
     }
+    return books;
+}
 
-    // Reload the current tab
-    loadBooks(listType);
+async function loadBooks(listType) {
+    try {
+        // Get the book grid for the current tab
+        const bookGrid = document.querySelector(`#${listType} .book-grid`);
+        if (!bookGrid) return;
+
+        // Fetch reading list from server
+        const response = await fetch('/reading_list.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: `action:get`
+        });
+
+        const text = await response.text();
+        const books = parseBookData(text)[listType] || [];
+
+        if (books.length === 0) {
+            bookGrid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-book-open"></i>
+                    <h3>No books yet</h3>
+                    <p>Start building your reading list by adding books from our collection</p>
+                    <a href="../index.html" class="browse-books-btn">Browse Books</a>
+                </div>
+            `;
+            return;
+        }
+
+        // Display books
+        bookGrid.innerHTML = books.map(book => `
+            <div class="book-card" data-book-id="${book.id}">
+                <img src="${book.cover || 'https://cdn-icons-png.flaticon.com/512/3145/3145765.png'}" 
+                     alt="${book.title}" 
+                     class="book-cover"
+                     onerror="this.src='https://cdn-icons-png.flaticon.com/512/3145/3145765.png'">
+                <div class="book-info">
+                    <h3 class="book-title">${book.title}</h3>
+                    <p class="book-author">${book.author}</p>
+                    ${listType === 'currently-reading' ? `
+                        <div class="book-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${book.progress || 0}%"></div>
+                            </div>
+                            <p class="progress-text">${book.progress || 0}% Complete</p>
+                        </div>
+                    ` : ''}
+                    <button class="remove-book-btn" onclick="removeBook('${book.id}', '${listType}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Add click listeners to book cards
+        const bookCards = bookGrid.querySelectorAll('.book-card');
+        bookCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Don't trigger if clicking the remove button
+                if (e.target.closest('.remove-book-btn')) return;
+
+                const bookId = card.dataset.bookId;
+                const book = books.find(b => b.id === bookId);
+                if (book) {
+                    showBookDetails(book);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error loading books:', error);
+        alert('Failed to load books. Please try again later.');
+    }
+}
+
+async function removeBook(bookId, listType) {
+    try {
+        const response = await fetch('/reading_list.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: `action:remove|book_id:${bookId}`
+        });
+
+        const text = await response.text();
+        const { type } = parseTextResponse(text);
+        
+        if (type === 'SUCCESS') {
+            // Reload the current tab
+            loadBooks(listType);
+        }
+    } catch (error) {
+        console.error('Error removing book:', error);
+        alert('Failed to remove book. Please try again later.');
+    }
 }
 
 function showBookDetails(book) {
@@ -165,55 +228,70 @@ function showBookDetails(book) {
     };
 }
 
-function updateProgress(bookId, newProgress) {
-    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-    
-    // Update progress in currently-reading list
-    if (readingList['currently-reading']) {
-        readingList['currently-reading'] = readingList['currently-reading'].map(book => {
-            if (book.id === bookId) {
-                return { ...book, progress: newProgress };
-            }
-            return book;
+async function updateProgress(bookId, newProgress) {
+    try {
+        const response = await fetch('/save_progress.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: `bookId:${bookId}|page:${newProgress}`
         });
+
+        const text = await response.text();
+        const { type } = parseTextResponse(text);
         
-        localStorage.setItem('readingList', JSON.stringify(readingList));
-        loadBooks('currently-reading');
-        
-        // If progress is 100%, ask if want to move to completed
-        if (newProgress === 100) {
-            if (confirm('Congratulations on finishing the book! Would you like to move it to your completed list?')) {
-                moveBook(bookId, 'currently-reading', 'completed');
+        if (type === 'SUCCESS') {
+            loadBooks('currently-reading');
+            
+            // If progress is 100%, ask if want to move to completed
+            if (newProgress === 100) {
+                if (confirm('Congratulations on finishing the book! Would you like to move it to your completed list?')) {
+                    moveBook(bookId, 'currently-reading', 'completed');
+                }
             }
         }
+    } catch (error) {
+        console.error('Error updating progress:', error);
+        alert('Failed to update progress. Please try again later.');
     }
 }
 
-function moveBook(bookId, fromList, toList) {
-    const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-    
-    // Find the book in the source list
-    const book = readingList[fromList]?.find(b => b.id === bookId);
-    if (!book) return;
-    
-    // Remove from source list
-    readingList[fromList] = readingList[fromList].filter(b => b.id !== bookId);
-    
-    // Initialize target list if it doesn't exist
-    if (!readingList[toList]) {
-        readingList[toList] = [];
+async function moveBook(bookId, fromList, toList) {
+    try {
+        // Remove from current list
+        const removeResponse = await fetch('/reading_list.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: `action:remove|book_id:${bookId}`
+        });
+
+        const removeText = await removeResponse.text();
+        const { type: removeType } = parseTextResponse(removeText);
+        
+        if (removeType === 'SUCCESS') {
+            // Add to new list
+            const addResponse = await fetch('/reading_list.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: `action:add|book_id:${bookId}|list_type:${toList}`
+            });
+
+            const addText = await addResponse.text();
+            const { type: addType } = parseTextResponse(addText);
+            
+            if (addType === 'SUCCESS') {
+                // Reload both lists
+                loadBooks(fromList);
+                loadBooks(toList);
+            }
+        }
+    } catch (error) {
+        console.error('Error moving book:', error);
+        alert('Failed to move book. Please try again later.');
     }
-    
-    // Add to target list
-    readingList[toList].push({
-        ...book,
-        dateCompleted: toList === 'completed' ? new Date().toISOString() : undefined
-    });
-    
-    // Save changes
-    localStorage.setItem('readingList', JSON.stringify(readingList));
-    
-    // Reload both lists
-    loadBooks(fromList);
-    loadBooks(toList);
 }

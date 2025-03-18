@@ -13,7 +13,7 @@
 <body>
     <!-- Header -->
     <header>
-        <a href="index.html" class="site-title">
+        <a href="/bookhub-1/views/index.html" class="site-title">
             <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
             <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
             BookHub
@@ -28,21 +28,15 @@
             </div>
         </div>
         <nav class="header-nav">
-            <a href="index.html" class="nav-button active">Home</a>
-            <a href="search.html" class="nav-button">Search</a>
-            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+            <a href="/bookhub-1/views/index.html" class="nav-button active">Home</a>
+            <a href="/bookhub-1/views/search.html" class="nav-button">Search</a>
+            <a href="/bookhub-1/views/reading-list.html" class="nav-button protected-feature">My List</a>
             <div class="auth-buttons">
-                <div class="profile-dropdown protected-feature">
-                    <button class="profile-button nav-button">
-                        <i class="fas fa-user"></i>
-                        <span>Profile</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="profile.html">View Profile</a>
-                        <a href="#" onclick="logout()">Logout</a>
-                    </div>
-                </div>
-                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="/bookhub-1/views/profile.html" class="nav-button protected-feature">
+                    <i class="fas fa-user"></i>
+                    <span class="user-info"></span>
+                </a>
+                <a href="/bookhub-1/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
             </div>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
@@ -447,6 +441,7 @@
     <!-- Scripts -->
     <script src="../src/js/auth.js"></script>
     <script src="../src/js/header.js"></script>
+    <script src="../src/js/bookComponent.js"></script>
     <script src="../src/js/script.js"></script>
 
     <script>
@@ -653,6 +648,34 @@
                 console.error('Error fetching book details:', error);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check login status and update UI
+            const isUserLoggedIn = isLoggedIn();
+            const user = getCurrentUser();
+            
+            console.log('Login status:', isUserLoggedIn);
+            console.log('Username:', user ? user.username : null);
+            console.log('AuthToken:', localStorage.getItem('authToken'));
+
+            // Update UI based on login status
+            updateProtectedElements();
+
+            // Add logout functionality
+            const logoutButton = document.querySelector('.logout-button');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            }
+
+            // Update user profile link if logged in
+            const profileLink = document.querySelector('.profile-link');
+            if (profileLink && user) {
+                profileLink.textContent = user.username || user.email;
+            }
+        });
     </script>
 </body>
 </html>

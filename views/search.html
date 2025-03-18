@@ -6,15 +6,15 @@
     <title>Search - BookHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
-    <link rel="stylesheet" href="../assets/css/header.css">
     <link rel="stylesheet" href="../assets/css/search.css">
     <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/header.css">
     <script src="../assets/js/theme.js"></script>
 </head>
 <body>
     <!-- Header -->
     <header>
-        <a href="index.html" class="site-title">
+        <a href="/bookhub-1/views/index.html" class="site-title">
             <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
             <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
             BookHub
@@ -29,21 +29,15 @@
             </div>
         </div>
         <nav class="header-nav">
-            <a href="index.html" class="nav-button">Home</a>
-            <a href="search.html" class="nav-button active">Search</a>
-            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+            <a href="/bookhub-1/views/index.html" class="nav-button">Home</a>
+            <a href="/bookhub-1/views/search.html" class="nav-button active">Search</a>
+            <a href="/bookhub-1/views/reading-list.html" class="nav-button protected-feature">My List</a>
             <div class="auth-buttons">
-                <div class="profile-dropdown protected-feature">
-                    <button class="profile-button nav-button">
-                        <i class="fas fa-user"></i>
-                        <span>Profile</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="profile.html">View Profile</a>
-                        <a href="#" onclick="logout()">Logout</a>
-                    </div>
-                </div>
-                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="/bookhub-1/views/profile.html" class="nav-button protected-feature">
+                    <i class="fas fa-user"></i>
+                    <span class="user-info"></span>
+                </a>
+                <a href="/bookhub-1/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
             </div>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
@@ -334,336 +328,23 @@
 
     <!-- Scripts -->
     <script src="../src/js/auth.js"></script>
+    <script src="../src/js/header.js"></script>
     <script src="../src/js/script.js"></script>
     <script>
-        // Initialize variables and elements
-        const searchInput = document.querySelector('.search-input');
-        const searchButton = document.querySelector('.search-button');
-        const resultsGrid = document.getElementById('search-results-grid');
-        const sortSelect = document.getElementById('sort-select');
-        const applyFiltersBtn = document.getElementById('apply-filters');
-        const modal = document.getElementById('bookModal');
-        const closeBtn = document.querySelector('.close');
-        const readBtn = document.querySelector('.read-btn');
-        let currentBookId = null;
-        let currentBooks = []; // Store current books for filtering
-
-        // Close modal when clicking X
-        if (closeBtn) {
-            closeBtn.onclick = () => {
-                modal.style.display = 'none';
-            };
-        }
-
-        // Close modal when clicking outside
-        window.onclick = (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
-
-        // Function to check if user is logged in
-        function isLoggedIn() {
-            const status = checkLoginStatus();
-            console.log('Login status:', status);
-            console.log('Username:', localStorage.getItem('username'));
-            console.log('AuthToken:', localStorage.getItem('authToken'));
-            return status;
-        }
-
-        // Function to start reading a book
-        function startReading(bookId) {
-            if (!bookId) return;
-            window.location.href = `reader.html?book_id=${bookId}`;
-        }
-
-        // Function to add book to reading list
-        function addToReadingList(bookId) {
-            const username = localStorage.getItem('username');
-            const readingList = JSON.parse(localStorage.getItem(`${username}_reading_list`)) || {
-                want_to_read: [],
-                currently_reading: [],
-                completed: []
-            };
-
-            // Check if book is already in any list
-            const allBooks = [
-                ...readingList.want_to_read,
-                ...readingList.currently_reading,
-                ...readingList.completed
-            ];
-
-            if (allBooks.includes(bookId)) {
-                showMessage('This book is already in your reading list!');
-                return;
-            }
-
-            // Add to want_to_read by default
-            readingList.want_to_read.push(bookId);
-            localStorage.setItem(`${username}_reading_list`, JSON.stringify(readingList));
+        // Initialize authentication on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication status
+            await checkAuthStatus();
             
-            showMessage('Book added to your reading list!');
-            modal.style.display = 'none';
-        }
-
-        // Function to show login prompt
-        function showLoginPrompt() {
-            const shouldLogin = confirm('You need to be logged in to use this feature. Would you like to log in now?');
-            if (shouldLogin) {
-                window.location.href = 'sign-in.html';
+            // Get search query from URL if present
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            
+            if (query) {
+                document.getElementById('searchInput').value = query;
+                performSearch(query);
             }
-        }
-
-        // Function to show message
-        function showMessage(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.textContent = message;
-            messageDiv.style.position = 'fixed';
-            messageDiv.style.top = '20px';
-            messageDiv.style.left = '50%';
-            messageDiv.style.transform = 'translateX(-50%)';
-            messageDiv.style.padding = '10px 20px';
-            messageDiv.style.backgroundColor = 'var(--primary-color)';
-            messageDiv.style.color = 'white';
-            messageDiv.style.borderRadius = '5px';
-            messageDiv.style.zIndex = '1000';
-            
-            document.body.appendChild(messageDiv);
-            
-            setTimeout(() => {
-                messageDiv.remove();
-            }, 3000);
-        }
-
-        // Handle Read Now button
-        if (readBtn) {
-            readBtn.addEventListener('click', () => {
-                if (currentBookId) {
-                    window.location.href = `reader.html?book_id=${currentBookId}`;
-                }
-            });
-        }
-
-        // Function to show book details
-        async function showBookDetails(bookId) {
-            try {
-                const response = await fetch('../get_books.php');
-                const books = await response.json();
-                const book = books.find(b => b.book_id === bookId);
-                
-                if (book) {
-                    // Safely get book properties with defaults
-                    const title = book.title || 'Untitled';
-                    const author = book.author || 'Unknown Author';
-                    const cover_image = book.cover_image || '../assets/images/default-cover.jpg';
-                    const rating = parseFloat(book.rating || 0).toFixed(1);
-                    const total_ratings = book.total_ratings || 0;
-                    const genre = book.genre || 'Uncategorized';
-                    const description = book.description || 'No description available.';
-                    const author_books = book.author_books || 1;
-                    const genre_rating = parseFloat(book.genre_rating || rating).toFixed(1);
-                    const language = book.language || 'Not specified';
-                    const publication_year = book.publication_year || 'Not specified';
-                    const format = book.format || 'E-Book';
-                    const reading_time = book.reading_time || 'Varies';
-
-                    // Update modal content with safe values
-                    document.getElementById('modalBookTitle').textContent = title;
-                    document.getElementById('modalBookAuthor').textContent = author;
-                    document.getElementById('modalBookCover').src = cover_image;
-                    document.getElementById('modalBookCover').onerror = function() {
-                        this.src = '../assets/images/default-cover.jpg';
-                    };
-                    document.getElementById('modalBookRating').textContent = rating;
-                    document.getElementById('modalTotalRatings').textContent = total_ratings;
-                    document.getElementById('modalBookGenre').textContent = genre;
-                    document.getElementById('modalBookDescription').textContent = description;
-                    document.getElementById('modalAuthorBooks').textContent = author_books;
-                    document.getElementById('modalGenreRating').textContent = genre_rating;
-                    document.getElementById('modalBookLanguage').textContent = language;
-                    document.getElementById('modalBookYear').textContent = publication_year;
-                    document.getElementById('modalBookFormat').textContent = format;
-                    document.getElementById('modalReadingTime').textContent = reading_time;
-                    
-                    // Store current book ID
-                    currentBookId = bookId;
-                    
-                    // Show modal
-                    modal.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Error fetching book details:', error);
-            }
-        }
-
-        // Function to perform search
-        async function performSearch(query = null) {
-            // Get query from parameter or input
-            const searchQuery = query || searchInput.value.trim();
-            searchInput.value = searchQuery; // Update input if query came from parameter
-            
-            try {
-                const response = await fetch('../get_books.php');
-                const books = await response.json();
-                currentBooks = books; // Store books for filtering
-                
-                // Get current filter values
-                const filters = {
-                    genre: document.getElementById('genre').value,
-                    language: document.getElementById('language').value,
-                    year: document.getElementById('year').value,
-                    rating: parseFloat(document.getElementById('rating').value),
-                    availability: document.getElementById('availability').value
-                };
-                
-                // Apply filters and search
-                const filteredBooks = filterBooks(books, searchQuery, filters);
-                
-                // Sort results
-                const sortBy = sortSelect.value;
-                const sortedBooks = sortBooks(filteredBooks, sortBy);
-                
-                // Display results
-                displayResults(sortedBooks);
-
-                // Update URL without reloading
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('q', searchQuery);
-                window.history.pushState({}, '', newUrl);
-            } catch (error) {
-                console.error('Error fetching books:', error);
-                resultsGrid.innerHTML = '<p class="error-message">Error loading books. Please try again.</p>';
-            }
-        }
-
-        // Function to filter books
-        function filterBooks(books, query, filters) {
-            return books.filter(book => {
-                // Safely get book properties with defaults
-                const title = (book.title || '').toLowerCase();
-                const author = (book.author || '').toLowerCase();
-                const genre = (book.genre || '').toLowerCase();
-                const language = (book.language || '').toLowerCase();
-                const publicationYear = book.publication_year || 0;
-                const rating = book.rating || 0;
-                const query_lower = query.toLowerCase();
-
-                // Search query filter
-                const matchesQuery = !query || 
-                    title.includes(query_lower) ||
-                    author.includes(query_lower) ||
-                    genre.includes(query_lower);
-                
-                // Genre filter
-                const matchesGenre = filters.genre === 'all' || 
-                    genre === filters.genre.toLowerCase();
-                
-                // Language filter
-                const matchesLanguage = filters.language === 'all' || 
-                    language === filters.language.toLowerCase();
-                
-                // Year filter
-                const matchesYear = filters.year === 'all' || 
-                    publicationYear === parseInt(filters.year);
-                
-                // Rating filter
-                const matchesRating = rating >= filters.rating;
-                
-                // Availability filter (with safe defaults)
-                const matchesAvailability = filters.availability === 'all' || 
-                    (filters.availability === 'ebook' && book.ebook_available === true) ||
-                    (filters.availability === 'audiobook' && book.audiobook_available === true);
-                
-                return matchesQuery && matchesGenre && matchesLanguage && 
-                       matchesYear && matchesRating && matchesAvailability;
-            });
-        }
-
-        // Function to sort books
-        function sortBooks(books, sortBy) {
-            return [...books].sort((a, b) => {
-                switch (sortBy) {
-                    case 'rating':
-                        return (b.rating || 0) - (a.rating || 0);
-                    case 'date':
-                        return (b.publication_year || 0) - (a.publication_year || 0);
-                    case 'title':
-                        return (a.title || '').localeCompare(b.title || '');
-                    default: // relevance - keep original order
-                        return 0;
-                }
-            });
-        }
-
-        // Function to display results
-        function displayResults(books) {
-            if (books.length === 0) {
-                resultsGrid.innerHTML = '<p class="no-results">No books found matching your criteria.</p>';
-                return;
-            }
-            
-            resultsGrid.innerHTML = books.map(book => createBookCard(book)).join('');
-        }
-
-        // Function to create book card
-        function createBookCard(book) {
-            // Safely get book properties with defaults
-            const title = book.title || 'Untitled';
-            const author = book.author || 'Unknown Author';
-            const rating = book.rating || 0;
-            const cover_image = book.cover_image || '../assets/images/default-cover.jpg';
-            
-            return `
-                <div class="book-card" onclick="showBookDetails('${book.book_id}')">
-                    <div class="book-cover">
-                        <img src="${cover_image}" alt="${title}" onerror="this.src='../assets/images/default-cover.jpg'">
-                    </div>
-                    <div class="book-info">
-                        <h3>${title}</h3>
-                        <p class="author">${author}</p>
-                        <div class="rating">
-                            <i class="fas fa-star"></i>
-                            <span>${rating}</span>/5
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Event listeners
-        document.addEventListener('performSearch', (e) => {
-            performSearch(e.detail);
         });
-
-        if (searchInput) {
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') performSearch();
-            });
-        }
-
-        if (searchButton) {
-            searchButton.addEventListener('click', performSearch);
-        }
-
-        if (applyFiltersBtn) {
-            applyFiltersBtn.addEventListener('click', performSearch);
-        }
-
-        if (sortSelect) {
-            sortSelect.addEventListener('change', () => {
-                const sortedBooks = sortBooks(currentBooks, sortSelect.value);
-                displayResults(sortedBooks);
-            });
-        }
-
-        // Initialize search if query parameter exists
-        const urlParams = new URLSearchParams(window.location.search);
-        const queryParam = urlParams.get('q');
-        if (queryParam) {
-            searchInput.value = queryParam;
-            performSearch(queryParam);
-        }
     </script>
 </body>
 </html>

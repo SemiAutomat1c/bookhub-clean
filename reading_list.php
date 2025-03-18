@@ -1,17 +1,25 @@
 <?php
 session_start();
-header('Content-Type: application/json');
+header('Content-Type: text/plain');
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['error' => 'Authentication required']);
+    echo "ERROR|Authentication required";
     exit;
 }
 
-// Get the request body
-$data = json_decode(file_get_contents('php://input'), true);
+// Get the request body and parse manually
+$raw_data = file_get_contents('php://input');
+$data = array();
+foreach (explode('|', $raw_data) as $pair) {
+    $parts = explode(':', $pair);
+    if (count($parts) === 2) {
+        $data[trim($parts[0])] = trim($parts[1]);
+    }
+}
+
 if (!$data) {
-    echo json_encode(['error' => 'Invalid request data']);
+    echo "ERROR|Invalid request data";
     exit;
 }
 
@@ -20,7 +28,7 @@ require_once 'config/database.php';
 $conn = new mysqli($host, $username, $password, $database);
 
 if ($conn->connect_error) {
-    echo json_encode(['error' => 'Database connection failed']);
+    echo "ERROR|Database connection failed";
     exit;
 }
 
@@ -33,7 +41,7 @@ switch ($action) {
         $list_type = $data['list_type'] ?? '';
         
         if (!$book_id || !$list_type) {
-            echo json_encode(['error' => 'Missing book_id or list_type']);
+            echo "ERROR|Missing book_id or list_type";
             exit;
         }
         
@@ -44,7 +52,7 @@ switch ($action) {
         $result = $stmt->get_result();
         
         if ($result->num_rows > 0) {
-            echo json_encode(['error' => 'Book already in reading list']);
+            echo "ERROR|Book already in reading list";
             exit;
         }
         
@@ -53,9 +61,9 @@ switch ($action) {
         $stmt->bind_param("iis", $user_id, $book_id, $list_type);
         
         if ($stmt->execute()) {
-            echo json_encode(['success' => true]);
+            echo "SUCCESS|Book added to list";
         } else {
-            echo json_encode(['error' => 'Failed to add book to list']);
+            echo "ERROR|Failed to add book to list";
         }
         break;
         
@@ -63,7 +71,7 @@ switch ($action) {
         $book_id = $data['book_id'] ?? 0;
         
         if (!$book_id) {
-            echo json_encode(['error' => 'Missing book_id']);
+            echo "ERROR|Missing book_id";
             exit;
         }
         
@@ -71,9 +79,9 @@ switch ($action) {
         $stmt->bind_param("ii", $user_id, $book_id);
         
         if ($stmt->execute()) {
-            echo json_encode(['success' => true]);
+            echo "SUCCESS|Book removed from list";
         } else {
-            echo json_encode(['error' => 'Failed to remove book from list']);
+            echo "ERROR|Failed to remove book from list";
         }
         break;
         
@@ -88,29 +96,26 @@ switch ($action) {
         $stmt->execute();
         $result = $stmt->get_result();
         
-        $reading_list = [
-            'currently-reading' => [],
-            'want-to-read' => [],
-            'completed' => []
-        ];
+        $output = "DATA";
         
         while ($row = $result->fetch_assoc()) {
-            $reading_list[$row['list_type']][] = [
-                'id' => $row['book_id'],
-                'title' => $row['title'],
-                'author' => $row['author'],
-                'cover' => $row['cover'],
-                'description' => $row['description'],
-                'rating' => $row['rating'],
-                'genre' => $row['genre']
-            ];
+            $output .= sprintf("|book|%d|%s|%s|%s|%s|%s|%s|%s|%s",
+                $row['book_id'],
+                $row['list_type'],
+                $row['title'],
+                $row['author'],
+                $row['cover'],
+                $row['description'],
+                $row['rating'],
+                $row['genre']
+            );
         }
         
-        echo json_encode(['success' => true, 'data' => $reading_list]);
+        echo $output === "DATA" ? "DATA|no_books" : $output;
         break;
         
     default:
-        echo json_encode(['error' => 'Invalid action']);
+        echo "ERROR|Invalid action";
 }
 
 $conn->close();

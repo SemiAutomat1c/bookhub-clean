@@ -184,12 +184,16 @@ body.dark-mode .dark-mode-toggle .fa-sun {
 
 /* Dark Mode Specific Styles */
 body.dark-mode {
-    --bg-color: #121212;
+    --primary-color: #8a2be2;
+    --primary-color-dark: #7424c0;
     --text-color: #ffffff;
+    --text-muted: #999999;
     --border-color: #333333;
+    --bg-color: #121212;
     --input-bg: #1e1e1e;
-    --card-bg: #1e1e1e;
     --hover-color: #2d2d2d;
+    --hover-bg: #2d2d2d;
+    --shadow-color: rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode header {
@@ -214,19 +218,19 @@ body.dark-mode .dropdown-content {
 
 /* Protected Features */
 .protected-feature {
-    display: none;
+    display: none !important;
 }
 
 body.logged-in .protected-feature {
-    display: flex;
+    display: inline-flex !important;
 }
 
 .signed-out-only {
-    display: flex;
+    display: inline-flex !important;
 }
 
 body.logged-in .signed-out-only {
-    display: none;
+    display: none !important;
 }
 
 /* Profile Dropdown */
@@ -341,8 +345,8 @@ body.logged-in .signed-in-only {
 
 /* Light Mode Variables */
 :root {
-    --primary-color: #8a2be2;
-    --primary-color-dark: #7424c0;
+    --primary-color: #0d6efd;
+    --primary-color-dark: #0b5ed7;
     --text-color: #333333;
     --text-muted: #666666;
     --border-color: #e0e0e0;

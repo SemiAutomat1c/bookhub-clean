@@ -12,7 +12,7 @@
 <body>
     <!-- Header -->
     <header>
-        <a href="index.html" class="site-title">
+        <a href="/bookhub-1/views/index.html" class="site-title">
             <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
             <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
             BookHub
@@ -27,21 +27,15 @@
             </div>
         </div>
         <nav class="header-nav">
-            <a href="index.html" class="nav-button">Home</a>
-            <a href="search.html" class="nav-button">Search</a>
-            <a href="reading-list.html" class="nav-button protected-feature">My List</a>
+            <a href="/bookhub-1/views/index.html" class="nav-button">Home</a>
+            <a href="/bookhub-1/views/search.html" class="nav-button">Search</a>
+            <a href="/bookhub-1/views/reading-list.html" class="nav-button protected-feature">My List</a>
             <div class="auth-buttons">
-                <div class="profile-dropdown protected-feature">
-                    <button class="profile-button nav-button active">
-                        <i class="fas fa-user"></i>
-                        <span>Profile</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="profile.html">View Profile</a>
-                        <a href="#" onclick="logout()">Logout</a>
-                    </div>
-                </div>
-                <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="/bookhub-1/views/profile.html" class="nav-button protected-feature active">
+                    <i class="fas fa-user"></i>
+                    <span class="user-info"></span>
+                </a>
+                <a href="/bookhub-1/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
             </div>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
@@ -80,22 +74,27 @@
     });
     </script>
 
+    <!-- Error and success message containers -->
+    <div id="error-container" class="alert alert-danger" style="display: none;"></div>
+    <div id="success-container" class="alert alert-success" style="display: none;"></div>
+
     <!-- Main Content -->
     <main class="profile-container">
         <div class="profile-header">
             <h1>Profile</h1>
-            <button onclick="logout()" class="logout-button">
-                <i class="fas fa-sign-out-alt"></i>
-                Logout
-            </button>
         </div>
         <div class="profile-content">
             <div class="profile-section">
                 <h2>Account Information</h2>
                 <div class="profile-info">
-                    <p><strong>Username:</strong> <span id="username"></span></p>
+                    <p><strong>Username:</strong> <span id="username" class="user-info"></span></p>
                     <p><strong>Email:</strong> <span id="email"></span></p>
                     <p><strong>Member Since:</strong> <span id="memberSince"></span></p>
+                </div>
+                <div class="profile-actions">
+                    <button onclick="logout()" class="logout-button">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
             </div>
             <div class="profile-stats">
@@ -126,109 +125,95 @@
     </main>
 
     <!-- Scripts -->
+    <script src="../src/js/auth.js"></script>
+    <script src="../src/js/header.js"></script>
     <script>
-        // Check if user is logged in
-        const authToken = localStorage.getItem('authToken');
-        if (!authToken) {
-            window.location.href = 'sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
-        }
-
-        // Initialize default user data if not exists
-        if (!localStorage.getItem('userData')) {
-            const defaultUserData = {
-                username: 'User',
-                email: 'Not provided',
-                memberSince: new Date().toISOString()
-            };
-            localStorage.setItem('userData', JSON.stringify(defaultUserData));
-        }
-
         // Load profile data
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get user data from localStorage
-            const userData = JSON.parse(localStorage.getItem('userData'));
-            const readingList = JSON.parse(localStorage.getItem('readingList') || '{}');
-            
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
+            const isAuthenticated = await checkAuthStatus();
+            if (!isAuthenticated) {
+                window.location.href = '/bookhub-1/views/sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+
+            // Get user data
+            const userData = getCurrentUser();
+            if (!userData) {
+                console.error('User data not found');
+                return;
+            }
+
             // Update profile info
-            document.getElementById('username').textContent = userData.username;
-            document.getElementById('email').textContent = userData.email;
+            document.getElementById('username').textContent = userData.username || 'N/A';
+            document.getElementById('email').textContent = userData.email || 'N/A';
             
-            // Format member since date
-            const memberSince = new Date(userData.memberSince);
+            // Format member since date (using current date for now)
+            const memberSince = new Date();
             document.getElementById('memberSince').textContent = memberSince.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
-            
-            // Update reading stats
-            document.getElementById('currently-reading-count').textContent = 
-                (readingList['currently-reading'] || []).length;
-            document.getElementById('want-to-read-count').textContent = 
-                (readingList['want-to-read'] || []).length;
-            document.getElementById('completed-count').textContent = 
-                (readingList['completed'] || []).length;
 
-            // Load recent activity
-            const activityList = document.getElementById('activity-list');
-            let recentActivity = [];
-
-            // Add books from each list to activity
-            ['currently-reading', 'want-to-read', 'completed'].forEach(listType => {
-                if (readingList[listType]) {
-                    readingList[listType].forEach(book => {
-                        recentActivity.push({
-                            type: listType,
-                            book: book,
-                            date: book.addedAt || new Date().toISOString()
-                        });
-                    });
+            // Load reading stats from server (to be implemented)
+            try {
+                const response = await fetch('/bookhub-1/api/user/stats.php', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('currently-reading-count').textContent = stats.currentlyReading || 0;
+                    document.getElementById('want-to-read-count').textContent = stats.wantToRead || 0;
+                    document.getElementById('completed-count').textContent = stats.completed || 0;
                 }
-            });
-
-            // Sort by date, most recent first
-            recentActivity.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            // Display only the 5 most recent activities
-            recentActivity = recentActivity.slice(0, 5);
-
-            // Display activities
-            activityList.innerHTML = recentActivity.length ? recentActivity.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        ${activity.type === 'currently-reading' ? '<i class="fas fa-book-reader"></i>' :
-                          activity.type === 'want-to-read' ? '<i class="fas fa-bookmark"></i>' :
-                          '<i class="fas fa-check-circle"></i>'}
-                    </div>
-                    <div class="activity-details">
-                        <p>
-                            ${activity.type === 'currently-reading' ? 'Started reading' :
-                              activity.type === 'want-to-read' ? 'Added to reading list' :
-                              'Completed'} 
-                            <strong>${activity.book.title}</strong>
-                        </p>
-                        <span class="activity-date">
-                            ${new Date(activity.date).toLocaleDateString()}
-                        </span>
-                    </div>
-                </div>
-            `).join('') : '<p class="no-activity">No recent activity</p>';
-
-            // Update auth UI
-            updateAuthUI();
-        });
-
-        // Function to handle logout
-        function logout() {
-            if (confirm('Are you sure you want to log out?')) {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('userData');
-                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error loading reading stats:', error);
             }
-        }
+
+            // Load recent activity from server (to be implemented)
+            try {
+                const response = await fetch('/bookhub-1/api/user/activity.php', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const activities = await response.json();
+                    const activityList = document.getElementById('activity-list');
+                    
+                    if (activities.length === 0) {
+                        activityList.innerHTML = '<p class="no-activity">No recent activity</p>';
+                        return;
+                    }
+
+                    activityList.innerHTML = activities.map(activity => `
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                ${activity.type === 'currently-reading' ? '<i class="fas fa-book-reader"></i>' :
+                                  activity.type === 'want-to-read' ? '<i class="fas fa-bookmark"></i>' :
+                                  '<i class="fas fa-check-circle"></i>'}
+                            </div>
+                            <div class="activity-details">
+                                <p>
+                                    ${activity.type === 'currently-reading' ? 'Started reading' :
+                                      activity.type === 'want-to-read' ? 'Added to reading list' :
+                                      'Completed'} 
+                                    <strong>${activity.book.title}</strong>
+                                </p>
+                                <span class="activity-date">
+                                    ${new Date(activity.date).toLocaleDateString()}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading activity:', error);
+                document.getElementById('activity-list').innerHTML = 
+                    '<p class="no-activity">Error loading activity</p>';
+            }
+        });
     </script>
-    <script src="../src/js/theme.js"></script>
-    <script src="../src/js/auth.js"></script>
-    <script src="../src/js/script.js"></script>
 </body>
 </html>

@@ -28,25 +28,25 @@ $result = $conn->query($sql);
 $books = array();
 if ($result && $result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        $books[] = array(
-            'book_id' => $row['book_id'],
-            'title' => $row['title'],
-            'author' => $row['author'],
-            'cover_image' => $row['cover_image'],
-            'description' => $row['description'],
-            'genre' => $row['genre'],
-            'file_path' => $row['file_path'],
-            'file_type' => $row['file_type'],
-            'average_rating' => round($row['average_rating'], 1),
-            'total_ratings' => $row['total_ratings']
-        );
+        $books[] = implode('|', array(
+            $row['book_id'],
+            $row['title'],
+            $row['author'],
+            $row['cover_image'],
+            $row['description'],
+            $row['genre'],
+            $row['file_path'],
+            $row['file_type'],
+            round($row['average_rating'], 1),
+            $row['total_ratings']
+        ));
     }
 }
 
-// If this file was requested directly, return JSON
+// If this file was requested directly, return plain text
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
-    header('Content-Type: application/json');
-    echo json_encode($books);
+    header('Content-Type: text/plain');
+    echo implode("\n", $books);
 }
 
 $conn->close();

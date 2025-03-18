@@ -2,8 +2,18 @@
 require_once 'auth_check.php';
 require_once 'database.php';
 
-// Get POST data
-$data = json_decode(file_get_contents('php://input'), true);
+// Set content type to text/plain
+header('Content-Type: text/plain');
+
+// Get POST data as raw input and parse manually
+$raw_data = file_get_contents('php://input');
+$data = array();
+foreach (explode('|', $raw_data) as $pair) {
+    $parts = explode(':', $pair);
+    if (count($parts) === 2) {
+        $data[trim($parts[0])] = trim($parts[1]);
+    }
+}
 
 if (isset($data['bookId']) && isset($data['page'])) {
     $book_id = (int)$data['bookId'];
@@ -23,19 +33,19 @@ if (isset($data['bookId']) && isset($data['page'])) {
         $stmt->bind_param("iii", $user_id, $book_id, $page);
         
         if ($stmt->execute()) {
-            echo json_encode(array('success' => true));
+            echo "SUCCESS|Progress saved successfully";
         } else {
             throw new Exception('Failed to save progress');
         }
         
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(array('error' => $e->getMessage()));
+        echo "ERROR|" . $e->getMessage();
     }
     
 } else {
     http_response_code(400);
-    echo json_encode(array('error' => 'Invalid request data'));
+    echo "ERROR|Invalid request data";
 }
 
 $conn->close();

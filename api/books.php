@@ -1,46 +1,93 @@
 <?php
-header('Content-Type: application/json');
-
-// Include database connection
 require_once '../config/database.php';
 
-// Get book ID from query parameter
-$bookId = isset($_GET['id']) ? $_GET['id'] : null;
+// Set headers
+header('Content-Type: text/plain');
 
-if (!$bookId) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Book ID is required']);
-    exit;
+// Check if user is admin for write operations
+function isAdmin() {
+    session_start();
+    return isset($_SESSION['user_id']) && isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
 }
 
-try {
-    // Prepare and execute query
-    $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
-    $stmt->bind_param("i", $bookId);
+// Handle GET requests
+function handleGetRequest($conn) {
+    // Get specific book
+    if (isset($_GET['id'])) {
+        $bookId = $_GET['id'];
+        $stmt = $conn->prepare("SELECT * FROM books WHERE book_id = ?");
+        $stmt->bind_param("i", $bookId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 0) {
+            echo "ERROR|Book not found";
+            return;
+        }
+
+        $book = $result->fetch_assoc();
+        echo "SUCCESS|" . implode("|", [
+            $book['book_id'],
+            $book['title'],
+            $book['author'],
+            $book['cover_image'] ?? '',
+            $book['description'] ?? '',
+            $book['genre'] ?? '',
+            $book['publication_year'] ?? '',
+            $book['file_path'] ?? '',
+            $book['file_type'] ?? ''
+        ]);
+        return;
+    }
+
+    // Search books
+    if (isset($_GET['search'])) {
+        $search = '%' . $_GET['search'] . '%';
+        $stmt = $conn->prepare("
+            SELECT * FROM books 
+            WHERE title LIKE ? OR author LIKE ? OR genre LIKE ?
+            ORDER BY title ASC
+        ");
+        $stmt->bind_param("sss", $search, $search, $search);
+    } else {
+        // Get all books
+        $stmt = $conn->prepare("SELECT * FROM books ORDER BY title ASC");
+    }
+
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    // Check if book exists
+
     if ($result->num_rows === 0) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Book not found']);
-        exit;
+        echo "SUCCESS|NO_BOOKS";
+        return;
     }
-    
-    // Get book data
-    $book = $result->fetch_assoc();
-    
-    // Add PDF URL
-    $book['pdfUrl'] = '../assets/books/' . $book['pdf_file'];
-    
-    // Return book data
-    echo json_encode($book);
-    
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+
+    $output = [];
+    while ($book = $result->fetch_assoc()) {
+        $output[] = implode("|", [
+            $book['book_id'],
+            $book['title'],
+            $book['author'],
+            $book['cover_image'] ?? '',
+            $book['description'] ?? '',
+            $book['genre'] ?? '',
+            $book['publication_year'] ?? '',
+            $book['file_path'] ?? '',
+            $book['file_type'] ?? ''
+        ]);
+    }
+
+    echo "SUCCESS|" . implode("\n", $output);
 }
 
-$stmt->close();
+// Get database connection
+$conn = getDBConnection();
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    handleGetRequest($conn);
+} else {
+    echo "ERROR|Invalid request method";
+}
+
 $conn->close();
 ?>
