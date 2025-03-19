@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Load dependencies
+require_once __DIR__ . '/middleware/AuthMiddleware.php';
+
 // Get the requested path
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/bookhub-1/';
@@ -14,21 +17,19 @@ if (($pos = strpos($path, '?')) !== false) {
 // Remove trailing slash
 $path = rtrim($path, '/');
 
-// Define routes
-$routes = [
-    '' => 'views/index.html',
-    'index' => 'views/index.html',
-    'reader' => 'views/reader.html',
-    'admin' => 'views/admin.html',
-    'sign-in' => 'views/sign-in.html',
-    'profile' => 'views/profile.html',
-    'search' => 'views/search.html',
-    'reading-list' => 'views/reading-list.html'
-];
+// Load routes configuration
+$routes = require __DIR__ . '/routes/web.php';
 
 // Check if route exists
 if (isset($routes[$path])) {
-    $file = $routes[$path];
+    $route = $routes[$path];
+    
+    // Check authentication and permissions
+    if (!AuthMiddleware::checkAccess($route)) {
+        exit;
+    }
+    
+    $file = $route['path'];
     if (file_exists($file)) {
         // Set content type based on file extension
         $ext = pathinfo($file, PATHINFO_EXTENSION);
@@ -39,7 +40,14 @@ if (isset($routes[$path])) {
             case 'json':
                 header('Content-Type: application/json');
                 break;
-            // Add more content types as needed
+            case 'css':
+                header('Content-Type: text/css');
+                break;
+            case 'js':
+                header('Content-Type: application/javascript');
+                break;
+            default:
+                header('Content-Type: text/plain');
         }
         readfile($file);
         exit;
@@ -48,4 +56,4 @@ if (isset($routes[$path])) {
 
 // If no route matches or file doesn't exist, return 404
 header("HTTP/1.0 404 Not Found");
-echo "404 Not Found"; 
+include __DIR__ . '/../views/404.html'; 
