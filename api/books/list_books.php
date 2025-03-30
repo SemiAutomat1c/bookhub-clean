@@ -4,6 +4,10 @@ session_start();
 // Set headers for CORS and content type
 header('Content-Type: text/plain');
 
+// Enable error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Get the origin
 $allowed_origins = array(
     'http://localhost',
@@ -28,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Debug logging for session and request
-error_log("Session data in list_books.php: " . print_r($_SESSION, true));
+error_log("=== START list_books.php ===");
+error_log("Session data: " . print_r($_SESSION, true));
 error_log("Request headers: " . print_r(getallheaders(), true));
 error_log("Origin: " . ($origin ?? 'none'));
 
@@ -38,46 +43,67 @@ require_once '../../config/database.php';
 try {
     // Check if user is admin for certain operations
     $is_admin = isset($_SESSION['user_id']) && isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
+    error_log("Is admin: " . ($is_admin ? 'true' : 'false'));
 
     // Get database connection
     $conn = getConnection();
     if (!$conn) {
         throw new Exception("Database connection failed");
     }
+    error_log("Database connection successful");
 
     // Get search parameters
-    $search = isset($_GET['search']) ? '%' . $_GET['search'] . '%' : '%';
+    $search = isset($_GET['search']) ? $_GET['search'] : '';
     $genre = isset($_GET['genre']) ? $_GET['genre'] : '';
     $sort = isset($_GET['sort']) ? $_GET['sort'] : 'title';
+    error_log("Search params - search: '$search', genre: '$genre', sort: '$sort'");
 
-    // Build the query
-    $query = "SELECT book_id, title, author, description, genre, publication_year, cover_image, file_path, file_type, created_at FROM books WHERE (title LIKE ? OR author LIKE ?)";
+    // Build base query
+    $query = "SELECT * FROM books";
+    $params = [];
+    $types = "";
+
+    // Add search conditions if provided
+    if (!empty($search)) {
+        $query .= " WHERE (title LIKE ? OR author LIKE ?)";
+        $searchParam = "%$search%";
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $types .= "ss";
+    }
+
+    // Add genre filter if provided
     if (!empty($genre)) {
-        $query .= " AND genre = ?";
+        $query .= empty($search) ? " WHERE" : " AND";
+        $query .= " genre = ?";
+        $params[] = $genre;
+        $types .= "s";
     }
 
     // Add sorting
+    $query .= " ORDER BY ";
     switch ($sort) {
         case 'author':
-            $query .= " ORDER BY author ASC";
+            $query .= "author ASC";
             break;
         case 'date':
-            $query .= " ORDER BY created_at DESC";
+            $query .= "created_at DESC";
             break;
         default:
-            $query .= " ORDER BY title ASC";
+            $query .= "title ASC";
     }
 
-    // Prepare and execute query
+    error_log("Final query: " . $query);
+    error_log("Query params: " . print_r($params, true));
+
+    // Prepare and execute statement
     $stmt = $conn->prepare($query);
     if (!$stmt) {
         throw new Exception("Failed to prepare statement: " . $conn->error);
     }
 
-    if (!empty($genre)) {
-        $stmt->bind_param("sss", $search, $search, $genre);
-    } else {
-        $stmt->bind_param("ss", $search, $search);
+    if (!empty($params)) {
+        $stmt->bind_param($types, ...$params);
     }
 
     if (!$stmt->execute()) {
@@ -85,26 +111,29 @@ try {
     }
 
     $result = $stmt->get_result();
+    error_log("Query executed successfully. Found " . $result->num_rows . " books");
+    
+    $books = [];
 
-    if ($result->num_rows > 0) {
-        $output = "";
-        while ($row = $result->fetch_assoc()) {
-            // Format each book's data
-            $output .= implode("|", [
-                $row['book_id'],
-                $row['title'],
-                $row['author'],
-                $row['description'] ?? '',
-                $row['genre'] ?? '',
-                $row['publication_year'] ?? '',
-                $row['cover_image'] ?? '',
-                $row['file_path'] ?? '',
-                $row['file_type'] ?? '',
-                $row['created_at'] ?? ''
-            ]) . "\n";
-        }
-        echo "SUCCESS|" . trim($output);
+    while ($row = $result->fetch_assoc()) {
+        error_log("Processing book: ID=" . $row['book_id'] . ", Title=" . $row['title']);
+        $books[] = implode("|", [
+            $row['book_id'],
+            $row['title'],
+            $row['author'],
+            $row['description'] ?? '',
+            $row['genre'] ?? '',
+            $row['publication_year'] ?? '',
+            $row['cover_image'] ?? '',
+            $row['file_path'] ?? ''
+        ]);
+    }
+
+    if (count($books) > 0) {
+        error_log("Returning " . count($books) . " books");
+        echo "SUCCESS|" . implode("\n", $books);
     } else {
+        error_log("No books found");
         echo "SUCCESS|NO_BOOKS";
     }
 
@@ -115,5 +144,9 @@ try {
     if (isset($stmt)) {
         $stmt->close();
     }
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->close();
+    }
+    error_log("=== END list_books.php ===");
 }
 ?> 

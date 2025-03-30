@@ -1,0 +1,115 @@
+@startuml BookHub ERD
+
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i>x</i>
+
+hide methods
+hide stereotypes
+
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2688d4
+    BorderColor #2688d4
+}
+
+table(users) {
+    primary_key(user_id): INT
+    username: VARCHAR(50)
+    email: VARCHAR(255)
+    password_hash: VARCHAR(255)
+    full_name: VARCHAR(100)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+    last_login: TIMESTAMP
+    is_active: TINYINT(1)
+    is_admin: TINYINT(1)
+    reset_token: VARCHAR(255)
+    reset_token_expires: TIMESTAMP
+}
+
+table(books) {
+    primary_key(book_id): INT
+    title: VARCHAR(255)
+    author: VARCHAR(255)
+    description: TEXT
+    cover_image: VARCHAR(255)
+    genre: VARCHAR(50)
+    publication_year: INT
+    file_path: VARCHAR(255)
+    file_type: VARCHAR(10)
+    total_pages: INT
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(reading_lists) {
+    primary_key(list_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    list_type: ENUM
+    progress: INT
+    added_at: TIMESTAMP
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+    last_updated: TIMESTAMP
+}
+
+table(reading_progress) {
+    primary_key(progress_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    current_page: INT
+    is_completed: TINYINT(1)
+    last_read_date: TIMESTAMP
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(ratings) {
+    primary_key(rating_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    rating: DECIMAL(2,1)
+    review: TEXT
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(login_attempts) {
+    primary_key(id): INT
+    email: VARCHAR(100)
+    attempt_time: TIMESTAMP
+}
+
+table(password_reset_tokens) {
+    primary_key(id): INT
+    foreign_key(user_id): INT
+    token: VARCHAR(100)
+    created_at: TIMESTAMP
+    expires_at: TIMESTAMP
+    used: TINYINT(1)
+}
+
+table(user_activity_log) {
+    primary_key(id): INT
+    foreign_key(user_id): INT
+    activity_type: VARCHAR(50)
+    activity_details: TEXT
+    ip_address: VARCHAR(45)
+    user_agent: VARCHAR(255)
+    created_at: TIMESTAMP
+}
+
+' Relationships
+users "1" -- "*" reading_lists : has >
+users "1" -- "*" reading_progress : tracks >
+users "1" -- "*" ratings : gives >
+users "1" -- "*" password_reset_tokens : has >
+users "1" -- "*" user_activity_log : generates >
+
+books "1" -- "*" reading_lists : included in >
+books "1" -- "*" reading_progress : tracked in >
+books "1" -- "*" ratings : receives >
+
+@enduml 

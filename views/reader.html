@@ -10,51 +10,45 @@
     <link rel="stylesheet" href="../assets/css/reader.css">
     <!-- PDF.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
-    <script src="../assets/js/theme.js"></script>
+    <script src="../src/js/header.js"></script>
     <script src="../src/js/auth.js"></script>
     <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
-   <!-- Header -->
-   <header>
-    <a href="index.html" class="site-title">
-        <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
-        <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
-        BookHub
-    </a>
-    <div class="search-container">
-        <div class="search-input-wrapper">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
-            <button class="search-button" onclick="performSearch()">
-                <i class="fas fa-search"></i>
-            </button>
-            <div class="search-suggestions"></div>
-        </div>
-    </div>
-    <nav class="header-nav">
-        <a href="index.html" class="nav-button">Home</a>
-        <a href="search.html" class="nav-button">Search</a>
-        <a href="reading-list.html" class="nav-button protected-feature">My List</a>
-        <div class="auth-buttons">
-            <div class="profile-dropdown protected-feature">
-                <button class="profile-button nav-button">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
+    <!-- Header -->
+    <header>
+        <a href="/bookhub-1/views/index.html" class="site-title">
+            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+            BookHub
+        </a>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                <button class="search-button" onclick="performSearch()">
+                    <i class="fas fa-search"></i>
                 </button>
-                <div class="dropdown-content">
-                    <a href="profile.html">View Profile</a>
-                    <a href="#" onclick="logout()">Logout</a>
-                </div>
+                <div class="search-suggestions"></div>
             </div>
-            <a href="sign-in.html" class="nav-button signed-out-only">Sign In</a>
         </div>
-        <button class="dark-mode-toggle">
-            <i class="fas fa-moon"></i>
-            <i class="fas fa-sun"></i>
-        </button>
-    </nav>
-</header>
+        <nav class="header-nav">
+            <a href="/bookhub-1/views/index.html" class="nav-button">Home</a>
+            <a href="/bookhub-1/views/search.html" class="nav-button">Search</a>
+            <a href="/bookhub-1/views/reading-list.html" class="nav-button protected-feature">My List</a>
+            <div class="auth-buttons">
+                <a href="/bookhub-1/views/profile.html" class="nav-button protected-feature">
+                    <i class="fas fa-user"></i>
+                    <span class="user-info"></span>
+                </a>
+                <a href="/bookhub-1/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
+            </div>
+            <button class="dark-mode-toggle">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+        </nav>
+    </header>
 
     <!-- Main Content -->
     <main class="reader-main">
@@ -133,7 +127,7 @@
             document.title = `${title} - BookHub Reader`;
 
             // Load PDF
-            const pdfPath = content_path || '../assets/books/samples/sample.pdf';
+            const pdfPath = content_path ? '/bookhub-1/' + content_path.replace(/^\/+/, '') : '../assets/books/samples/sample.pdf';
             loadPDF(pdfPath);
 
             // Update reading list
@@ -253,40 +247,59 @@
     // Function to update reading progress
     async function updateReadingProgress(bookId, progress = 0) {
         try {
-            const response = await fetch('../api/reading-list/update-progress.php', {
+            const data = `book_id:${bookId}|progress:${progress}`;
+            
+            const response = await fetch('/bookhub-1/api/reading-list/move.php', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'text/plain',
                 },
-                body: JSON.stringify({
-                    book_id: bookId,
-                    progress: progress
-                })
+                body: data,
+                credentials: 'include'
             });
 
             if (!response.ok) {
                 throw new Error('Failed to update reading progress');
             }
 
-            // Move book to currently reading list if not already there
-            const moveResponse = await fetch('../api/reading-list/move.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    book_id: bookId,
-                    to_list: 'currently-reading'
-                })
-            });
-
-            if (!moveResponse.ok) {
-                throw new Error('Failed to update reading list');
+            const text = await response.text();
+            if (text.startsWith('ERROR')) {
+                throw new Error(text.substring(6));
             }
+
+            console.log('Reading progress updated successfully');
         } catch (error) {
             console.error('Error updating reading status:', error);
         }
     }
+
+    // Theme toggle initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        const darkModeToggle = document.querySelector('.dark-mode-toggle');
+        
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        // Initialize theme from localStorage
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        // Add click event to dark mode toggle
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+
+        // Initialize theme on page load
+        initTheme();
+    });
     </script>
 </body>
 </html>

@@ -1,6 +1,29 @@
 // Book data cache
 let bookData = {};
 
+// Toast notification function
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger reflow
+    toast.offsetHeight;
+    
+    // Add show class
+    toast.classList.add('show');
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
 // Helper function to parse book data from text format
 function parseBookData(text) {
     if (!text || text.startsWith('ERROR')) {
@@ -81,20 +104,20 @@ async function checkBookInReadingList(bookId) {
             const [id] = line.split('|');
             if (id === bookId.toString()) {
                 console.log('Book found in section:', currentSection); // Debug log
-                return true;
+                return currentSection;
             }
         }
 
         console.log('Book not found in reading list'); // Debug log
-        return false;
+        return null;
     } catch (error) {
         console.error('Error checking reading list:', error);
-        return false;
+        return null;
     }
 }
 
 // Fetch book data from API
-async function loadBookData() {
+async function loadBookData(bookId) {
     try {
         console.log('Loading book data...'); // Debug log
         const response = await fetch('/bookhub-1/api/books.php', {
@@ -118,86 +141,98 @@ async function loadBookData() {
         }, {});
         
         console.log('Book data indexed:', bookData); // Debug log
+
+        return bookData[bookId];
     } catch (error) {
         console.error('Error loading books:', error);
         bookData = {}; // Reset on error
+        return null;
     }
 }
 
 // Function to show book details in modal
-async function showBookModal(bookId) {
-    console.log('Opening modal for book ID:', bookId);
+function showBookModal(bookId) {
+    const modal = document.getElementById('bookModal');
+    const modalContent = document.querySelector('.modal-content');
     
-    if (Object.keys(bookData).length === 0) {
-        await loadBookData();
-    }
-    
-    const book = bookData[bookId];
-    if (!book) {
-        console.error('Book not found:', bookId);
-        return;
-    }
+    // Load book data
+    loadBookData(bookId).then(bookData => {
+        if (!bookData) {
+            showToast('Error loading book details', 'error');
+            return;
+        }
 
-    const isInReadingList = await checkBookInReadingList(bookId);
-    const coverPath = book.cover ? 
-        book.cover.replace(/^\/+/, '') : 
-        'assets/images/default-cover.jpg';
-
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.style.display = 'block';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close">&times;</span>
+        const coverImage = bookData.cover ? '../' + bookData.cover.replace(/^\/+/, '') : '../assets/images/default-cover.jpg';
+        
+        modalContent.innerHTML = `
+            <button class="close">&times;</button>
             <div class="book-details">
                 <div class="book-cover">
-                    <img src="../${coverPath}" 
-                         alt="${book.title}"
-                         onerror="this.src='../assets/images/default-cover.jpg'">
+                    <img src="${coverImage}" alt="${bookData.title} cover" onerror="this.src='../assets/images/default-cover.jpg'">
                 </div>
                 <div class="book-info">
-                    <h2>${book.title}</h2>
-                    <p class="author">By ${book.author}</p>
+                    <h2>${bookData.title}</h2>
+                    <p class="author">by ${bookData.author}</p>
+                    <span class="book-genre">${bookData.genre}</span>
                     <div class="book-description">
                         <h3>Description</h3>
-                        <p>${book.description || 'No description available.'}</p>
+                        <p>${bookData.description || 'No description available.'}</p>
                     </div>
                     <div class="modal-actions">
-                        ${isInReadingList ? `
-                            <p class="already-added">This book is already in your reading list!</p>
-                        ` : `
-                            <button class="primary-btn read-btn" onclick="startReading(${bookId})">
-                                <i class="fas fa-book-reader"></i>
-                                Read Now
+                        ${bookData.file_path ? `
+                            <button class="primary-btn" onclick="startReading('${bookId}')">
+                                <i class="fas fa-book-reader"></i> Read Now
                             </button>
-                            <button class="secondary-btn add-to-list-btn" onclick="addToReadingList(${bookId})">
-                                <i class="fas fa-plus"></i>
-                                Add to List
+                        ` : ''}
+                        <div class="list-actions">
+                            <select class="list-type-select" id="listType">
+                                <option value="want-to-read">Want to Read</option>
+                                <option value="currently-reading">Currently Reading</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <button class="primary-btn" onclick="addToReadingList('${bookId}', document.getElementById('listType').value)">
+                                <i class="fas fa-plus"></i> Add to List
                             </button>
-                        `}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
-    document.body.appendChild(modal);
+        // Show modal
+        modal.style.display = 'flex';
 
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    });
+        // Close button functionality
+        const closeBtn = modalContent.querySelector('.close');
+        closeBtn.onclick = () => {
+            modal.style.display = 'none';
+        };
 
-    const closeBtn = modal.querySelector('.close');
-    closeBtn.addEventListener('click', () => {
-        modal.remove();
-    });
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            modal.remove();
-        }
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Check if book is already in reading list
+        checkBookInReadingList(bookId).then(listType => {
+            if (listType) {
+                const listActions = modalContent.querySelector('.list-actions');
+                listActions.innerHTML = `
+                    <div class="already-added">
+                        This book is already in your "${listType.replace(/-/g, ' ')}" list
+                    </div>
+                `;
+            }
+        });
     });
 }
 
@@ -225,10 +260,38 @@ function startReading(bookId) {
     window.location.href = `/bookhub-1/views/reader.html?book_id=${bookId}`;
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', loadBookData);
+// Function to add a book to the reading list
+async function addToReadingList(bookId, listType = 'want-to-read') {
+    try {
+        // Format the data as expected by the server
+        const data = `book_id:${bookId}|list_type:${listType}`;
+        
+        const response = await fetch('/bookhub-1/api/reading-list/add.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+            body: data,
+            credentials: 'include'
+        });
 
-// Make functions globally available
-window.showBookModal = showBookModal;
-window.startReading = startReading;
-window.addToReadingList = addToReadingList;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const text = await response.text();
+        console.log('Reading list response:', text); // Debug log
+
+        if (text.startsWith('ERROR')) {
+            throw new Error(text.substring(6));
+        }
+
+        showToast('Book added to reading list', 'success');
+
+        // Reload the book modal
+        showBookModal(bookId);
+    } catch (error) {
+        console.error('Error adding book to reading list:', error);
+        showToast('Error adding book to reading list', 'error');
+    }
+}

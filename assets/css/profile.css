@@ -16,11 +16,9 @@
 }
 
 .profile-header {
-    text-align: center;
-    margin-bottom: 40px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
@@ -28,6 +26,7 @@
 
 .profile-header h1 {
     margin: 0;
+    font-size: 2rem;
     color: var(--text-color);
 }
 
@@ -218,21 +217,22 @@
 }
 
 .logout-button {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: background-color 0.3s;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--danger-color, #dc3545);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
 }
 
 .logout-button:hover {
-    background-color: #c82333;
+    background-color: var(--danger-color-dark, #c82333);
+    transform: translateY(-2px);
 }
 
 .logout-button i {

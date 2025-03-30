@@ -102,9 +102,9 @@ try {
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
     // Insert new user
-    $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+    $sql = "INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $username, $email, $password_hash);
+    $stmt->bind_param("ssss", $username, $email, $password_hash, $fullname);
     
     if ($stmt->execute()) {
         $user_id = $stmt->insert_id;

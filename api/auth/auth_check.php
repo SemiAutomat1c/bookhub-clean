@@ -42,10 +42,11 @@ try {
     // Update last activity time
     $_SESSION['last_activity'] = time();
 
-    // Create database connection
-    $conn = new mysqli('localhost', 'root', '', 'bookhub');
-    if ($conn->connect_error) {
-        throw new Exception("Database connection failed: " . $conn->connect_error);
+    // Get database connection
+    require_once '../../config/database.php';
+    $conn = getConnection();
+    if (!$conn) {
+        throw new Exception("Database connection failed");
     }
 
     $stmt = $conn->prepare("SELECT user_id, username, email FROM users WHERE user_id = ?");
@@ -76,9 +77,6 @@ try {
 } finally {
     if (isset($stmt)) {
         $stmt->close();
-    }
-    if (isset($conn)) {
-        $conn->close();
     }
 }
 ?>

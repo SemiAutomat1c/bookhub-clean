@@ -1,9 +1,10 @@
-# BookHub - Digital Book Management System
+# BookHub - Digital Reading Companion
 
-BookHub is a web-based digital book management system that allows users to organize, read, and track their digital book collection.
+BookHub is a comprehensive web-based digital book management system that allows users to organize, read, and track their digital book collection while engaging with a community of readers.
 
 ## Features
 
+### Core Features
 - 📚 Digital book library management
 - 📖 Built-in PDF reader
 - 📋 Reading progress tracking
@@ -13,13 +14,59 @@ BookHub is a web-based digital book management system that allows users to organ
 - 🌓 Dark/Light mode support
 - 📱 Responsive design
 
-## Prerequisites
+### User Management
+- User registration and authentication
+- Profile management
+- Role-based access control (Admin/User)
+- Secure password reset functionality
+- Login attempt monitoring
 
-1. PHP 7.4 or higher
-2. MySQL 5.7 or higher
-3. Apache/Nginx web server
-4. PDO PHP extension enabled
-5. GD PHP extension (for image handling)
+### Book Management
+- Extensive book catalog with detailed information
+- Book search and filtering by genre
+- Cover image display
+- PDF file integration for reading
+- Book metadata including title, author, genre, and publication year
+
+### Reading Experience
+- Online PDF reader integration
+- Progress synchronization
+- Page tracking
+- Reading session logging
+- Customizable reading interface
+- Reading streak monitoring
+- Last read position memory
+
+### Community Features
+- Book ratings and reviews
+- Average rating display
+- Review management
+- Popular books showcase
+- Reading statistics
+
+### Admin Features
+- User management
+- Book catalog management
+- Content moderation
+- Activity monitoring
+- System statistics
+
+## Technical Requirements
+
+### Prerequisites
+- PHP 7.4 or higher
+- MySQL 5.7 or higher
+- Apache/Nginx web server
+- PDO PHP extension
+- GD PHP extension (for image handling)
+
+### Database Structure
+- Users and authentication
+- Books and metadata
+- Reading lists and progress
+- Ratings and reviews
+- Activity logging
+- Security monitoring
 
 ## Project Structure
 
@@ -28,6 +75,7 @@ bookhub/
 ├── api/                  # API endpoints
 ├── assets/              # Static assets (CSS, images)
 │   ├── css/            # Stylesheets
+│   ├── js/             # JavaScript files
 │   ├── images/         # Images and icons
 │   └── books/          # Book files storage
 ├── config/             # Configuration files
@@ -48,11 +96,10 @@ bookhub/
    ```
 
 2. **Database Setup**
-   - Navigate to the setup directory
-   - Configure database credentials in `database/setup.php`
+   - Configure database credentials in `config/database.php`
    - Run the setup script:
      ```bash
-     php database/setup.php
+     php setup/database/setup.php
      ```
 
 3. **File Permissions**
@@ -66,13 +113,11 @@ bookhub/
    - Configure your web server to point to the project directory
    - Ensure `.htaccess` is properly configured for URL rewriting
 
-## Default Admin Account
-
-After installation, you can log in with:
-- Username: admin
-- Password: admin123
-
-**Important:** Change the admin password after first login!
+5. **Default Admin Account**
+   After installation, you can log in with:
+   - Username: admin
+   - Password: admin123
+   **Important:** Change the admin password after first login!
 
 ## Security Features
 
@@ -83,6 +128,7 @@ After installation, you can log in with:
 - SQL injection protection
 - Input validation
 - Rate limiting for login attempts
+- CSRF protection
 
 ## Development
 
@@ -110,4 +156,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For issues or questions:
 1. Check the documentation
 2. Review error logs
-3. Open an issue on GitHub 
+3. Open an issue on GitHub
+
+## Acknowledgments
+
+- All the contributors who participated in this project
+- Open source libraries used in development
+- The reading community for inspiration and feedback 

@@ -4,7 +4,7 @@ if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
     define('DB_USERNAME', 'root');  // XAMPP default username
     define('DB_PASSWORD', '');      // XAMPP default empty password
-    define('DB_DATABASE', 'bookhub');
+    define('DB_NAME', 'bookhub');   // Changed from DB_DATABASE to DB_NAME for consistency
 }
 
 // Enable error reporting for development
@@ -22,9 +22,9 @@ if (!is_dir(__DIR__ . '/../logs')) {
 function getConnection() {
     static $conn = null;
     
-    if ($conn === null || !($conn instanceof mysqli) || !$conn->ping()) {
+    if ($conn === null || !($conn instanceof mysqli) || $conn->connect_error) {
         try {
-            $conn = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+            $conn = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
             
             if ($conn->connect_error) {
                 error_log("Database connection failed: " . $conn->connect_error);
@@ -129,27 +129,4 @@ function setCORSHeaders() {
     }
 }
 
-// Function to safely close database connection
-function closeConnection() {
-    global $conn;
-    
-    if (!isset($conn) || !($conn instanceof mysqli)) {
-        return; // No valid connection object
-    }
-    
-    try {
-        if ($conn->ping()) { // Only close if connection is still open
-            $conn->close();
-        }
-    } catch (Exception $e) {
-        error_log("Error closing connection: " . $e->getMessage());
-    } finally {
-        $conn = null; // Clear the connection object
-    }
-}
-
-// Only register shutdown function for web requests
-if (php_sapi_name() !== 'cli') {
-    register_shutdown_function('closeConnection');
-}
 ?>

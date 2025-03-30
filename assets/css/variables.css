@@ -1,0 +1,12 @@
+:root {
+    --primary-color-rgb: 123, 31, 162;
+    --danger-color: #dc3545;
+    --danger-color-dark: #bd2130;
+    --input-bg: #ffffff;
+    --input-bg-dark: #2a2a2a;
+    --border-color: #dee2e6;
+    --border-color-dark: #404040;
+    --card-bg: #ffffff;
+    --card-bg-dark: #2a2a2a;
+    --text-secondary: #6c757d;
+} 

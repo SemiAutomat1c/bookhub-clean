@@ -1,0 +1,104 @@
+@startuml BookHub ERD
+
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i>x</i>
+
+hide methods
+hide stereotypes
+
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2688d4
+    BorderColor #2688d4
+}
+
+table(users) {
+    primary_key(user_id): INT
+    username: VARCHAR(50)
+    email: VARCHAR(100)
+    password_hash: VARCHAR(255)
+    full_name: VARCHAR(100)
+    is_admin: BOOLEAN
+    last_login: TIMESTAMP
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(books) {
+    primary_key(book_id): INT
+    title: VARCHAR(255)
+    author: VARCHAR(100)
+    description: TEXT
+    genre: VARCHAR(50)
+    publication_year: INT
+    cover_image: VARCHAR(255)
+    file_path: VARCHAR(255)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(reading_lists) {
+    primary_key(reading_list_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    status: ENUM
+    progress: INT
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(reading_progress) {
+    primary_key(progress_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    current_page: INT
+    total_pages: INT
+    last_read_at: TIMESTAMP
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(reviews) {
+    primary_key(review_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    rating: INT
+    review_text: TEXT
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(user_preferences) {
+    primary_key(preference_id): INT
+    foreign_key(user_id): INT
+    theme_preference: ENUM
+    font_size: VARCHAR(20)
+    notification_enabled: BOOLEAN
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(reading_sessions) {
+    primary_key(session_id): INT
+    foreign_key(user_id): INT
+    foreign_key(book_id): INT
+    start_time: TIMESTAMP
+    end_time: TIMESTAMP
+    duration_minutes: INT
+    created_at: TIMESTAMP
+}
+
+' Relationships
+users "1" -- "*" reading_lists
+users "1" -- "*" reading_progress
+users "1" -- "*" reviews
+users "1" -- "1" user_preferences
+users "1" -- "*" reading_sessions
+
+books "1" -- "*" reading_lists
+books "1" -- "*" reading_progress
+books "1" -- "*" reviews
+books "1" -- "*" reading_sessions
+
+@enduml 

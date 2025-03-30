@@ -68,56 +68,305 @@ document.addEventListener('DOMContentLoaded', async () => {
 let currentBookId = null;
 
 // Function to create book card HTML
-function createBookCard(book) {
-    const defaultCover = 'data:image/svg+xml;base64,' + btoa(`
-        <svg width="200" height="300" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#e1e1e1"/>
-            <text x="50%" y="50%" font-family="Arial" font-size="20" fill="#2c3e50" text-anchor="middle" dy=".3em">No Cover</text>
-        </svg>
-    `);
-
+function createBookCard(book, showProgress = false) {
+    const defaultCover = '../assets/images/default-cover.jpg';
     const coverPath = book.cover_image ? 
         '../' + book.cover_image.replace(/^\/+/, '') : 
         defaultCover;
 
+    let progressHtml = '';
+    if (showProgress) {
+        progressHtml = `
+            <div class="progress-bar">
+                <div class="progress" style="width: ${book.progress || 0}%"></div>
+            </div>
+            <p class="progress-text">${book.progress || 0}% completed</p>
+        `;
+    }
+
     return `
-        <div class="book-card" onclick="showBookModal(${book.book_id})">
+        <div class="book-card" onclick="showBookModal(${book.book_id})" style="cursor: pointer;">
             <div class="book-cover">
                 <img src="${coverPath}" 
-                     alt="${book.title}"
+                     alt="${book.title} cover"
                      onerror="this.src='${defaultCover}'">
+                ${showProgress ? progressHtml : ''}
+            </div>
+            <div class="book-info">
+                <h3 class="book-title">${book.title}</h3>
+                <p class="author">${book.author}</p>
+                ${showProgress ? 
+                    `<a href="reader.html?book_id=${book.book_id}" class="continue-reading-btn" onclick="event.stopPropagation()">
+                        Continue Reading
+                    </a>` : 
+                    ''
+                }
             </div>
         </div>
     `;
 }
 
-// Function to load books
-async function loadBooks() {
+// Function to show book modal
+async function showBookModal(bookId) {
     try {
-        const response = await fetch('../api/books/list_books.php');
-        if (!response.ok) throw new Error('Failed to fetch books');
+        const response = await fetch(`../api/books.php?id=${bookId}`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch book details');
         
         const text = await response.text();
         if (text.startsWith('ERROR')) throw new Error(text.substring(6));
         
+        const [_, ...bookData] = text.split('|');
+        const [id, title, author, coverImage, description, genre, year] = bookData;
+        
+        const isInReadingList = await checkBookInReadingList(bookId);
+        const coverPath = coverImage ? 
+            '../' + coverImage.replace(/^\/+/, '') : 
+            '../assets/images/default-cover.jpg';
+
+        const modal = document.createElement('div');
+        modal.id = 'bookModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div class="book-details">
+                    <div class="book-cover">
+                        <img src="${coverPath}" 
+                             alt="${title}"
+                             onerror="this.src='../assets/images/default-cover.jpg'">
+                    </div>
+                    <div class="book-info">
+                        <h2>${title}</h2>
+                        <p class="author">By ${author}</p>
+                        <p class="genre">${genre} · ${year}</p>
+                        <div class="book-description">
+                            <h3>Description</h3>
+                            <p>${description || 'No description available.'}</p>
+                        </div>
+                        <div class="modal-actions">
+                            ${isInReadingList ? 
+                                `<p class="already-added">This book is already in your reading list!</p>` :
+                                `<button class="primary-btn read-btn" onclick="startReading(${id})">
+                                    <i class="fas fa-book-reader"></i> Read Now
+                                </button>
+                                <button class="secondary-btn add-to-list-btn" onclick="addToReadingList(${id})">
+                                    <i class="fas fa-plus"></i> Add to List
+                                </button>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove any existing modal
+        const existingModal = document.getElementById('bookModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+
+        // Set up close handlers
+        const closeBtn = modal.querySelector('.close');
+        closeBtn.onclick = () => {
+            modal.style.display = 'none';
+            modal.remove();
+        };
+
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                modal.remove();
+            }
+        };
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+                modal.remove();
+            }
+        });
+
+    } catch (error) {
+        console.error('Error showing book modal:', error);
+        showMessage('Failed to load book details');
+    }
+}
+
+// Function to load books
+async function loadBooks() {
+    try {
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`../api/books/list_books.php?t=${timestamp}`, {
+            cache: 'no-store',
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch books');
+        
+        const text = await response.text();
+        console.log('Raw API Response:', text); // Debug log for raw response
+        
+        if (text.startsWith('ERROR')) throw new Error(text.substring(6));
+        
         const books = text.split('\n')
-            .filter(line => line.trim() && !line.startsWith('SUCCESS'))
+            .filter(line => line.trim())
             .map(line => {
+                // Handle the case where SUCCESS is in the same line as the first book
+                if (line.startsWith('SUCCESS|')) {
+                    line = line.substring(8); // Remove 'SUCCESS|' prefix
+                }
                 const [id, title, author, description, genre, year, cover, file_path] = line.split('|');
-                return { book_id: parseInt(id), title, author, description, genre, publication_year: year, cover_image: cover, file_path };
+                console.log('Processing book line:', line); // Debug each book line
+                return { 
+                    book_id: parseInt(id), 
+                    title: title || 'Untitled', 
+                    author: author || 'Unknown Author', 
+                    description: description || 'No description available',
+                    genre: genre || 'Uncategorized',
+                    publication_year: year || 'Unknown',
+                    cover_image: cover || '',
+                    file_path: file_path || ''
+                };
             });
 
-        // Update book grids
+        console.log('All processed books:', books); // Debug all processed books
+
+        // Create a map for quick book lookups
+        const booksMap = new Map(books.map(book => [book.book_id, book]));
+        console.log('Books map:', Object.fromEntries(booksMap)); // Debug books map
+
+        // Handle Continue Reading section
+        const continueReadingGrid = document.getElementById('continue-reading-grid');
+        if (continueReadingGrid) {
+            const authenticated = await checkAuthStatus();
+            if (!authenticated) {
+                continueReadingGrid.innerHTML = `
+                    <div class="sign-in-prompt">
+                        <div class="prompt-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3>Track Your Reading Progress</h3>
+                        <p>Sign in to keep track of books you're currently reading</p>
+                        <a href="sign-in.html" class="sign-in-button">Sign In</a>
+                    </div>
+                `;
+            } else {
+                try {
+                    const readingListResponse = await fetch('/bookhub-1/api/reading-list/get.php', {
+                        credentials: 'include'
+                    });
+                    
+                    if (!readingListResponse.ok) throw new Error('Failed to fetch reading list');
+                    
+                    const readingListText = await readingListResponse.text();
+                    console.log('Reading list response:', readingListText);
+                    
+                    if (readingListText.startsWith('ERROR')) throw new Error(readingListText.substring(6));
+                    
+                    const lines = readingListText.split('\n');
+                    let currentlyReading = [];
+                    let inCurrentlyReadingSection = false;
+                    
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        if (line === 'CURRENTLY_READING') {
+                            inCurrentlyReadingSection = true;
+                            continue;
+                        } else if (line === 'WANT_TO_READ' || line === 'COMPLETED') {
+                            inCurrentlyReadingSection = false;
+                            continue;
+                        } else if (line === 'NO_BOOKS' && inCurrentlyReadingSection) {
+                            currentlyReading = [];
+                            break;
+                        } else if (inCurrentlyReadingSection && line !== 'SUCCESS') {
+                            const [bookId, title, author, coverImage, progress] = line.split('|');
+                            const bookDetails = booksMap.get(parseInt(bookId)) || {
+                                book_id: parseInt(bookId),
+                                title,
+                                author,
+                                cover_image: coverImage
+                            };
+                            currentlyReading.push({
+                                ...bookDetails,
+                                progress: parseInt(progress) || 0
+                            });
+                        }
+                    }
+
+                    if (currentlyReading.length === 0) {
+                        continueReadingGrid.innerHTML = `
+                            <div class="empty-state">
+                                <p>No books in progress</p>
+                            </div>
+                        `;
+                    } else {
+                        continueReadingGrid.innerHTML = currentlyReading
+                            .map(book => createBookCard(book, true))
+                            .join('');
+                    }
+                } catch (error) {
+                    console.error('Error fetching reading list:', error);
+                    continueReadingGrid.innerHTML = `
+                        <div class="error-state">
+                            <p>Failed to load reading list. Please try again later.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Update other book grids
+        const trendingBooks = books
+            .sort((a, b) => b.book_id - a.book_id) // Newest first
+            .slice(0, 4);
+        console.log('Trending books:', trendingBooks); // Debug trending books
+
         const grids = {
-            'trending-grid': books.slice(0, 6),
-            'new-books-grid': books.slice(6, 12),
-            'movie-adaptations-grid': books.slice(12, 18)
+            'trending-grid': trendingBooks,
+            'new-books-grid': books
+                .filter(book => !trendingBooks.find(b => b.book_id === book.book_id))
+                .slice(0, 4),
+            'movie-adaptations-grid': books
+                .filter(book => 
+                    ['Classic', 'Fiction', 'Mystery', 'Fantasy'].includes(book.genre) &&
+                    !trendingBooks.find(b => b.book_id === book.book_id)
+                )
+                .slice(0, 4)
         };
+
+        console.log('Grid assignments:', grids); // Debug log
 
         Object.entries(grids).forEach(([gridId, gridBooks]) => {
             const grid = document.getElementById(gridId);
             if (grid) {
-                grid.innerHTML = gridBooks.map(book => createBookCard(book)).join('');
+                console.log(`Updating ${gridId} with ${gridBooks.length} books`); // Debug log
+                if (gridBooks.length > 0) {
+                    const gridHtml = gridBooks.map(book => `
+                        <div class="book-card" onclick="showBookModal(${book.book_id})">
+                            <div class="book-cover">
+                                <img src="${book.cover_image ? '../' + book.cover_image.replace(/^\/+/, '') : '../assets/images/default-cover.jpg'}" 
+                                     alt="${book.title} cover"
+                                     onerror="this.src='../assets/images/default-cover.jpg'">
+                            </div>
+                            <div class="book-info">
+                                <h3 class="book-title">${book.title}</h3>
+                                <p class="author">${book.author}</p>
+                                <p class="genre">${book.genre}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                    grid.innerHTML = gridHtml;
+                } else {
+                    grid.innerHTML = '<div class="empty-state"><p>No books available</p></div>';
+                }
             }
         });
 

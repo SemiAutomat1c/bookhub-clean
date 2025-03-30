@@ -57,6 +57,12 @@ try {
         if (password_verify($password, $row['password_hash'])) {
             error_log("Password verified successfully");
             
+            // Update last_login timestamp
+            $updateStmt = $conn->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
+            $updateStmt->bind_param("i", $row['user_id']);
+            $updateStmt->execute();
+            $updateStmt->close();
+            
             // Set session variables
             $_SESSION['user_id'] = $row['user_id'];
             $_SESSION['username'] = $row['username'];

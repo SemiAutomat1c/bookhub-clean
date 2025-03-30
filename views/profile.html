@@ -82,6 +82,9 @@
     <main class="profile-container">
         <div class="profile-header">
             <h1>Profile</h1>
+            <button onclick="logout()" class="logout-button">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
         </div>
         <div class="profile-content">
             <div class="profile-section">
@@ -92,9 +95,7 @@
                     <p><strong>Member Since:</strong> <span id="memberSince"></span></p>
                 </div>
                 <div class="profile-actions">
-                    <button onclick="logout()" class="logout-button">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </button>
+                    <!-- Removed logout button from here -->
                 </div>
             </div>
             <div class="profile-stats">
