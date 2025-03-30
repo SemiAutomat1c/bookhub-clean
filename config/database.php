@@ -1,10 +1,40 @@
 <?php
-// Database configuration
-if (!defined('DB_HOST')) {
-    define('DB_HOST', 'localhost');
-    define('DB_USERNAME', 'root');  // XAMPP default username
-    define('DB_PASSWORD', '');      // XAMPP default empty password
-    define('DB_NAME', 'bookhub');   // Changed from DB_DATABASE to DB_NAME for consistency
+// Database Configuration
+$env = getenv('ENVIRONMENT') ?: 'development';
+
+$config = [
+    'development' => [
+        'host' => 'localhost',
+        'dbname' => 'bookhub',
+        'username' => 'root',
+        'password' => '',
+        'charset' => 'utf8mb4'
+    ],
+    'production' => [
+        'host' => getenv('DB_HOST'),
+        'dbname' => getenv('DB_NAME'),
+        'username' => getenv('DB_USER'),
+        'password' => getenv('DB_PASS'),
+        'charset' => 'utf8mb4'
+    ]
+];
+
+$dbConfig = $config[$env];
+
+try {
+    $pdo = new PDO(
+        "mysql:host={$dbConfig['host']};dbname={$dbConfig['dbname']};charset={$dbConfig['charset']}",
+        $dbConfig['username'],
+        $dbConfig['password'],
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+} catch(PDOException $e) {
+    error_log("Connection failed: " . $e->getMessage());
+    die("Connection failed. Please try again later.");
 }
 
 // Enable error reporting for development
