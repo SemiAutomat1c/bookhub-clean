@@ -8,8 +8,7 @@ $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 $allowed_origins = array(
     'http://localhost',
     'http://127.0.0.1',
-    'http://localhost:80',
-    'http://localhost:8080'
+    'http://localhost:80'
 );
 if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: $origin");
@@ -21,11 +20,11 @@ if (in_array($origin, $allowed_origins)) {
 try {
     // Check if user is logged in
     if (!isset($_SESSION['user_id'])) {
-        echo "ERROR|User not authenticated";
+        echo "ERROR|User not logged in";
         exit;
     }
 
-    $user_id = $_SESSION['user_id'];
+    $userId = $_SESSION['user_id'];
     
     // Get database connection
     $conn = getConnection();
@@ -33,64 +32,95 @@ try {
         throw new Exception("Database connection failed");
     }
 
-    // Get reading statistics
-    $stats = array();
-
-    // Total books in reading list
-    $sql = "SELECT COUNT(*) as total FROM reading_lists WHERE user_id = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stats['total_books'] = $result->fetch_assoc()['total'];
-    $stmt->close();
-
-    // Books by list type
-    $sql = "SELECT list_type, COUNT(*) as count FROM reading_lists WHERE user_id = ? GROUP BY list_type";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $stats[$row['list_type']] = $row['count'];
-    }
-    $stmt->close();
-
-    // Average reading progress
-    $sql = "SELECT AVG(progress) as avg_progress FROM reading_lists WHERE user_id = ? AND list_type = 'currently-reading'";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stats['average_progress'] = round($result->fetch_assoc()['avg_progress'] ?? 0);
-    $stmt->close();
-
-    // Books completed this month
-    $sql = "SELECT COUNT(*) as count FROM reading_lists 
-            WHERE user_id = ? 
-            AND list_type = 'completed' 
-            AND YEAR(last_updated) = YEAR(CURRENT_DATE)
-            AND MONTH(last_updated) = MONTH(CURRENT_DATE)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stats['completed_this_month'] = $result->fetch_assoc()['count'];
-    $stmt->close();
-
-    // Format response as text
-    $response = array("SUCCESS");
-    $response[] = "total_books:" . $stats['total_books'];
-    $response[] = "want-to-read:" . ($stats['want-to-read'] ?? 0);
-    $response[] = "currently-reading:" . ($stats['currently-reading'] ?? 0);
-    $response[] = "completed:" . ($stats['completed'] ?? 0);
-    $response[] = "average_progress:" . $stats['average_progress'];
-    $response[] = "completed_this_month:" . $stats['completed_this_month'];
+    // Initialize counts
+    $stats = [
+        'currently-reading' => 0,
+        'want-to-read' => 0,
+        'completed' => 0
+    ];
     
-    echo implode("\n", $response);
+    // Check if reading_list table exists
+    $tables_result = $conn->query("SHOW TABLES LIKE 'reading_list'");
+    $reading_list_exists = ($tables_result->num_rows > 0);
+    
+    // Check if reading_lists table exists
+    $tables_result = $conn->query("SHOW TABLES LIKE 'reading_lists'");
+    $reading_lists_exists = ($tables_result->num_rows > 0);
+    
+    // Query reading_list if it exists
+    if ($reading_list_exists) {
+        $sql = "SELECT 
+                    list_type, 
+                    COUNT(*) as count 
+                FROM 
+                    reading_list 
+                WHERE 
+                    user_id = ? 
+                GROUP BY 
+                    list_type";
+        
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $userId);
+            
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                
+                // Populate counts from query results
+                while ($row = $result->fetch_assoc()) {
+                    if (isset($stats[$row['list_type']])) {
+                        $stats[$row['list_type']] = $row['count'];
+                    }
+                }
+            }
+            
+            $stmt->close();
+        }
+    }
+    
+    // Query reading_lists if it exists and combine the results
+    if ($reading_lists_exists) {
+        $sql = "SELECT 
+                    list_type, 
+                    COUNT(*) as count 
+                FROM 
+                    reading_lists 
+                WHERE 
+                    user_id = ? 
+                GROUP BY 
+                    list_type";
+        
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $userId);
+            
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                
+                // Combine with previous stats - we'll use the highest count
+                while ($row = $result->fetch_assoc()) {
+                    if (isset($stats[$row['list_type']])) {
+                        $stats[$row['list_type']] = max($stats[$row['list_type']], $row['count']);
+                    }
+                }
+            }
+            
+            $stmt->close();
+        }
+    }
+    
+    // Return success with combined stats
+    echo "SUCCESS\n";
+    foreach ($stats as $type => $count) {
+        echo "$type:$count\n";
+    }
 
 } catch (Exception $e) {
-    error_log("Error getting user stats: " . $e->getMessage());
+    error_log("Stats error: " . $e->getMessage());
     echo "ERROR|" . $e->getMessage();
+} finally {
+    if (isset($conn) && !($conn instanceof mysqli_stmt)) {
+        $conn->close();
+    }
 }
 ?> 

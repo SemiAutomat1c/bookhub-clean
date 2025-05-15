@@ -8,8 +8,7 @@ $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 $allowed_origins = array(
     'http://localhost',
     'http://127.0.0.1',
-    'http://localhost:80',
-    'http://localhost:8080'
+    'http://localhost:80'
 );
 if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: $origin");
@@ -91,8 +90,8 @@ try {
         throw new Exception("Book not found");
     }
 
-    // Check if entry already exists
-    $check_sql = "SELECT list_id FROM reading_lists WHERE user_id = ? AND book_id = ?";
+    // Check if the book is already in the user's reading list
+    $check_sql = "SELECT list_id FROM reading_list WHERE user_id = ? AND book_id = ?";
     $check_stmt = $conn->prepare($check_sql);
     $check_stmt->bind_param("ii", $user_id, $book_id);
     $check_stmt->execute();
@@ -100,17 +99,67 @@ try {
     error_log("Existing entry check - Found rows: " . $result->num_rows);
     
     if ($result->num_rows > 0) {
-        // Update existing entry
-        $sql = "UPDATE reading_lists SET list_type = ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ? AND book_id = ?";
+        // Update existing entry in reading_list
+        $sql = "UPDATE reading_list SET list_type = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND book_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("sii", $list_type, $user_id, $book_id);
-        error_log("Updating existing entry with SQL: " . $sql);
+        error_log("Updating existing entry in reading_list with SQL: " . $sql);
+        $stmt->execute();
+        
+        // Also try to update in reading_lists if it exists
+        $sql_lists = "UPDATE reading_lists SET list_type = ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ? AND book_id = ?";
+        $stmt_lists = $conn->prepare($sql_lists);
+        if ($stmt_lists) {
+            $stmt_lists->bind_param("sii", $list_type, $user_id, $book_id);
+            error_log("Updating existing entry in reading_lists with SQL: " . $sql_lists);
+            $stmt_lists->execute();
+            $stmt_lists->close();
+        }
     } else {
-        // Insert new entry
-        $sql = "INSERT INTO reading_lists (user_id, book_id, list_type, progress) VALUES (?, ?, ?, 0)";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("iis", $user_id, $book_id, $list_type);
-        error_log("Inserting new entry with SQL: " . $sql);
+        // Check if book exists in reading_lists
+        $check_lists_sql = "SELECT list_id FROM reading_lists WHERE user_id = ? AND book_id = ?";
+        $check_lists_stmt = $conn->prepare($check_lists_sql);
+        $in_reading_lists = false;
+        
+        if ($check_lists_stmt) {
+            $check_lists_stmt->bind_param("ii", $user_id, $book_id);
+            $check_lists_stmt->execute();
+            $lists_result = $check_lists_stmt->get_result();
+            $in_reading_lists = ($lists_result->num_rows > 0);
+            $check_lists_stmt->close();
+        }
+        
+        if ($in_reading_lists) {
+            // Update existing entry in reading_lists
+            $sql_lists = "UPDATE reading_lists SET list_type = ?, last_updated = CURRENT_TIMESTAMP WHERE user_id = ? AND book_id = ?";
+            $stmt_lists = $conn->prepare($sql_lists);
+            $stmt_lists->bind_param("sii", $list_type, $user_id, $book_id);
+            error_log("Updating existing entry in reading_lists with SQL: " . $sql_lists);
+            $stmt_lists->execute();
+            $stmt_lists->close();
+            
+            // Also add to reading_list for consistency
+            $sql = "INSERT INTO reading_list (user_id, book_id, list_type, progress) VALUES (?, ?, ?, 0)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("iis", $user_id, $book_id, $list_type);
+            error_log("Inserting new entry in reading_list with SQL: " . $sql);
+        } else {
+            // Insert new entry in reading_list
+            $sql = "INSERT INTO reading_list (user_id, book_id, list_type, progress) VALUES (?, ?, ?, 0)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("iis", $user_id, $book_id, $list_type);
+            error_log("Inserting new entry in reading_list with SQL: " . $sql);
+            
+            // Also insert into reading_lists
+            $sql_lists = "INSERT INTO reading_lists (user_id, book_id, list_type, progress) VALUES (?, ?, ?, 0)";
+            $stmt_lists = $conn->prepare($sql_lists);
+            if ($stmt_lists) {
+                $stmt_lists->bind_param("iis", $user_id, $book_id, $list_type);
+                error_log("Inserting new entry in reading_lists with SQL: " . $sql_lists);
+                $stmt_lists->execute();
+                $stmt_lists->close();
+            }
+        }
     }
 
     if (!$stmt->execute()) {
@@ -119,8 +168,8 @@ try {
     }
     error_log("Database operation successful - Affected rows: " . $stmt->affected_rows);
 
-    // Verify the entry was added/updated
-    $verify_sql = "SELECT * FROM reading_lists WHERE user_id = ? AND book_id = ?";
+    // Verify that the record was inserted correctly
+    $verify_sql = "SELECT * FROM reading_list WHERE user_id = ? AND book_id = ?";
     $verify_stmt = $conn->prepare($verify_sql);
     $verify_stmt->bind_param("ii", $user_id, $book_id);
     $verify_stmt->execute();

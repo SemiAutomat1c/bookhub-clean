@@ -8,8 +8,7 @@ $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
 $allowed_origins = array(
     'http://localhost',
     'http://127.0.0.1',
-    'http://localhost:80',
-    'http://localhost:8080'
+    'http://localhost:80'
 );
 if (in_array($origin, $allowed_origins)) {
     header("Access-Control-Allow-Origin: $origin");
@@ -43,79 +42,122 @@ try {
         error_log("- " . $table[0]);
     }
 
-    // Debug the reading_lists table structure
-    $structure_result = $conn->query("DESCRIBE reading_lists");
-    error_log("Reading lists table structure:");
+    // Debug the reading_list table structure
+    $structure_result = $conn->query("DESCRIBE reading_list");
+    error_log("Reading list table structure:");
     while ($field = $structure_result->fetch_assoc()) {
         error_log("- " . $field['Field'] . " (" . $field['Type'] . ")");
     }
 
-    // Get user's reading lists with book details
-    $sql = "SELECT 
-                rl.book_id,
-                rl.list_type,
-                rl.progress,
-                b.title,
-                b.author,
-                b.description,
-                b.genre,
-                b.cover_image
-            FROM reading_lists rl
-            JOIN books b ON rl.book_id = b.book_id
-            WHERE rl.user_id = ?
-            ORDER BY rl.added_at DESC";
-
-    error_log("Executing SQL query: " . $sql);
-    error_log("With user_id: " . $user_id);
-
-    $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        error_log("Failed to prepare statement in get.php: " . $conn->error);
-        throw new Exception("Failed to prepare statement: " . $conn->error);
+    // Get user's reading lists with book details from both tables
+    $all_books = [];
+    
+    // Check if reading_list table exists
+    $tables_result = $conn->query("SHOW TABLES LIKE 'reading_list'");
+    $reading_list_exists = ($tables_result->num_rows > 0);
+    
+    // Check if reading_lists table exists
+    $tables_result = $conn->query("SHOW TABLES LIKE 'reading_lists'");
+    $reading_lists_exists = ($tables_result->num_rows > 0);
+    
+    // Function to process results into categorized book lists
+    function processBooks($result, &$want_to_read, &$currently_reading, &$completed) {
+        while ($row = $result->fetch_assoc()) {
+            error_log("Processing row: " . print_r($row, true));
+            
+            // Format book data with necessary details
+            $book_data = implode('|', [
+                $row['book_id'],
+                $row['title'],
+                $row['author'],
+                $row['cover_image'] ?? '',
+                $row['progress'] ?? '0'
+            ]);
+            
+            error_log("List type: " . $row['list_type']);
+            switch ($row['list_type']) {
+                case 'want-to-read':
+                    $want_to_read[$row['book_id']] = $book_data;
+                    error_log("Added to want-to-read list");
+                    break;
+                case 'currently-reading':
+                    $currently_reading[$row['book_id']] = $book_data;
+                    error_log("Added to currently-reading list");
+                    break;
+                case 'completed':
+                    $completed[$row['book_id']] = $book_data;
+                    error_log("Added to completed list");
+                    break;
+            }
+        }
     }
-
-    $stmt->bind_param("i", $user_id);
     
-    if (!$stmt->execute()) {
-        error_log("Failed to execute query in get.php: " . $stmt->error);
-        throw new Exception("Failed to execute query: " . $stmt->error);
-    }
-    
-    $result = $stmt->get_result();
-    error_log("Query result rows: " . $result->num_rows);
-    
-    // Initialize lists
+    // Initialize lists with book_id as key to avoid duplicates
     $want_to_read = [];
     $currently_reading = [];
     $completed = [];
     
-    // Process each row
-    while ($row = $result->fetch_assoc()) {
-        error_log("Processing row: " . print_r($row, true));
+    // Query reading_list if it exists
+    if ($reading_list_exists) {
+        $sql = "SELECT 
+                    rl.book_id,
+                    rl.list_type,
+                    rl.progress,
+                    b.title,
+                    b.author,
+                    b.description,
+                    b.genre,
+                    b.cover_image
+                FROM reading_list rl
+                JOIN books b ON rl.book_id = b.book_id
+                WHERE rl.user_id = ?";
         
-        // Format book data with necessary details
-        $book_data = implode('|', [
-            $row['book_id'],
-            $row['title'],
-            $row['author'],
-            $row['cover_image'] ?? '',
-            $row['progress'] ?? '0'
-        ]);
+        error_log("Executing SQL query for reading_list: " . $sql);
+        error_log("With user_id: " . $user_id);
         
-        error_log("List type: " . $row['list_type']);
-        switch ($row['list_type']) {
-            case 'want-to-read':
-                $want_to_read[] = $book_data;
-                error_log("Added to want-to-read list");
-                break;
-            case 'currently-reading':
-                $currently_reading[] = $book_data;
-                error_log("Added to currently-reading list");
-                break;
-            case 'completed':
-                $completed[] = $book_data;
-                error_log("Added to completed list");
-                break;
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $user_id);
+            
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                error_log("reading_list query result rows: " . $result->num_rows);
+                processBooks($result, $want_to_read, $currently_reading, $completed);
+            }
+            
+            $stmt->close();
+        }
+    }
+    
+    // Query reading_lists if it exists
+    if ($reading_lists_exists) {
+        $sql = "SELECT 
+                    rl.book_id,
+                    rl.list_type,
+                    rl.progress,
+                    b.title,
+                    b.author,
+                    b.description,
+                    b.genre,
+                    b.cover_image
+                FROM reading_lists rl
+                JOIN books b ON rl.book_id = b.book_id
+                WHERE rl.user_id = ?";
+        
+        error_log("Executing SQL query for reading_lists: " . $sql);
+        error_log("With user_id: " . $user_id);
+        
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $user_id);
+            
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                error_log("reading_lists query result rows: " . $result->num_rows);
+                processBooks($result, $want_to_read, $currently_reading, $completed);
+            }
+            
+            $stmt->close();
         }
     }
     
@@ -156,11 +198,6 @@ try {
         foreach ($completed as $book) {
             echo $book . "\n";
         }
-    }
-
-    // Clean up
-    if (isset($stmt) && $stmt instanceof mysqli_stmt) {
-        $stmt->close();
     }
 
 } catch (Exception $e) {

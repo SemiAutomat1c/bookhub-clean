@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - BookHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/header.css">
-    <link rel="stylesheet" href="../assets/css/styles.css">
-    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="/bookhub-clean/assets/css/header.css">
+    <link rel="stylesheet" href="/bookhub-clean/assets/css/styles.css">
+    <link rel="stylesheet" href="/bookhub-clean/assets/css/profile.css">
+    <!-- Load auth.js first to handle user authentication -->
+    <script src="/bookhub-clean/src/js/auth.js"></script>
 </head>
 <body>
     <!-- Header -->
     <header>
-        <a href="/bookhub-1/views/index.html" class="site-title">
-            <img src="../assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
-            <img src="../assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
+        <a href="/bookhub-clean/views/index.html" class="site-title">
+            <img src="/bookhub-clean/assets/images/logo22.jpg" alt="Logo" class="logo light-logo">
+            <img src="/bookhub-clean/assets/images/logo11.jpg" alt="Logo" class="logo dark-logo">
             BookHub
         </a>
         <div class="search-container">
@@ -27,15 +29,15 @@
             </div>
         </div>
         <nav class="header-nav">
-            <a href="/bookhub-1/views/index.html" class="nav-button">Home</a>
-            <a href="/bookhub-1/views/search.html" class="nav-button">Search</a>
-            <a href="/bookhub-1/views/reading-list.html" class="nav-button protected-feature">My List</a>
+            <a href="/bookhub-clean/views/index.html" class="nav-button">Home</a>
+            <a href="/bookhub-clean/views/search.html" class="nav-button">Search</a>
+            <a href="/bookhub-clean/views/reading-list.html" class="nav-button protected-feature">My List</a>
             <div class="auth-buttons">
-                <a href="/bookhub-1/views/profile.html" class="nav-button protected-feature active">
+                <a href="/bookhub-clean/views/profile.html" class="nav-button protected-feature active">
                     <i class="fas fa-user"></i>
                     <span class="user-info"></span>
                 </a>
-                <a href="/bookhub-1/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
+                <a href="/bookhub-clean/views/sign-in.html" class="nav-button signed-out-only">Sign In</a>
             </div>
             <button class="dark-mode-toggle">
                 <i class="fas fa-moon"></i>
@@ -44,45 +46,15 @@
         </nav>
     </header>
 
-    <script>
-    // Theme toggle functionality
-    document.addEventListener('DOMContentLoaded', () => {
-        const darkModeToggle = document.querySelector('.dark-mode-toggle');
-        
-        // Function to toggle dark mode
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-        }
-
-        // Initialize theme from localStorage
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-        }
-
-        // Add click event to dark mode toggle
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', toggleDarkMode);
-        }
-
-        // Initialize theme on page load
-        initTheme();
-    });
-    </script>
-
     <!-- Error and success message containers -->
-    <div id="error-container" class="alert alert-danger" style="display: none;"></div>
-    <div id="success-container" class="alert alert-success" style="display: none;"></div>
+    <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+    <div id="success-message" class="alert alert-success" style="display: none;"></div>
 
     <!-- Main Content -->
     <main class="profile-container">
         <div class="profile-header">
             <h1>Profile</h1>
-            <button onclick="logout()" class="logout-button">
+            <button id="logoutBtn" class="logout-button">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
@@ -90,12 +62,9 @@
             <div class="profile-section">
                 <h2>Account Information</h2>
                 <div class="profile-info">
-                    <p><strong>Username:</strong> <span id="username" class="user-info"></span></p>
+                    <p><strong>Username:</strong> <span id="username"></span></p>
                     <p><strong>Email:</strong> <span id="email"></span></p>
                     <p><strong>Member Since:</strong> <span id="memberSince"></span></p>
-                </div>
-                <div class="profile-actions">
-                    <!-- Removed logout button from here -->
                 </div>
             </div>
             <div class="profile-stats">
@@ -126,142 +95,222 @@
     </main>
 
     <!-- Scripts -->
-    <script src="../src/js/auth.js"></script>
-    <script src="../src/js/header.js"></script>
+    <script src="/bookhub-clean/src/js/header.js"></script>
     <script>
         // Load profile data
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication
-            const isAuthenticated = await checkAuthStatus();
-            if (!isAuthenticated) {
-                window.location.href = '/bookhub-1/views/sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-
-            // Get user data
-            const userData = getCurrentUser();
-            if (!userData) {
-                console.error('User data not found');
-                return;
-            }
-
-            // Update profile info
-            document.getElementById('username').textContent = userData.username || 'N/A';
-            document.getElementById('email').textContent = userData.email || 'N/A';
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log("DOMContentLoaded event fired");
             
-            // Format member since date (using current date for now)
-            const memberSince = new Date();
-            document.getElementById('memberSince').textContent = memberSince.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            // Load reading stats from server
             try {
-                const response = await fetch('/bookhub-1/api/user/stats.php', {
-                    credentials: 'include'
-                });
+                // Check authentication
+                const isAuthenticated = await checkAuthStatus();
+                console.log("Authentication status:", isAuthenticated);
                 
-                if (response.ok) {
-                    const text = await response.text();
-                    console.log('Stats response:', text); // Debug log
-                    
-                    if (!text.startsWith('SUCCESS')) {
-                        throw new Error(text);
-                    }
-
-                    // Parse the text response
-                    const lines = text.split('\n');
-                    const stats = {};
-                    
-                    for (let i = 1; i < lines.length; i++) {
-                        const [key, value] = lines[i].split(':');
-                        if (key && value) {
-                            stats[key] = parseInt(value);
-                        }
-                    }
-
-                    // Update stats display
-                    document.getElementById('currently-reading-count').textContent = stats['currently-reading'] || 0;
-                    document.getElementById('want-to-read-count').textContent = stats['want-to-read'] || 0;
-                    document.getElementById('completed-count').textContent = stats['completed'] || 0;
+                if (!isAuthenticated) {
+                    console.log("User not authenticated, redirecting to sign-in");
+                    window.location.href = '/bookhub-clean/views/sign-in.html?returnUrl=' + encodeURIComponent(window.location.pathname);
+                    return;
                 }
-            } catch (error) {
-                console.error('Error loading reading stats:', error);
-            }
 
-            // Load recent activity from server
-            try {
-                const response = await fetch('/bookhub-1/api/user/activity.php', {
-                    credentials: 'include'
-                });
+                // Get user data
+                const userData = getCurrentUser();
+                console.log("User data:", userData);
                 
-                if (response.ok) {
-                    const text = await response.text();
-                    console.log('Activity response:', text); // Debug log
-                    
-                    if (!text.startsWith('SUCCESS')) {
-                        throw new Error(text);
-                    }
+                if (!userData) {
+                    console.error('User data not found');
+                    document.getElementById('error-message').textContent = 'Unable to load user profile';
+                    document.getElementById('error-message').style.display = 'block';
+                    return;
+                }
 
-                    const lines = text.split('\n');
-                    const activityList = document.getElementById('activity-list');
-                    
-                    if (lines[1] === 'NO_ACTIVITIES') {
-                        activityList.innerHTML = '<p class="no-activity">No recent activity</p>';
-                        return;
-                    }
+                // Update profile info
+                document.getElementById('username').textContent = userData.username || 'N/A';
+                document.getElementById('email').textContent = userData.email || 'N/A';
+                
+                // Format member since date (using current date for now)
+                const memberSince = new Date();
+                document.getElementById('memberSince').textContent = memberSince.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
 
-                    const activities = [];
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (!line) continue;
+                // Setup logout button
+                document.getElementById('logoutBtn').addEventListener('click', function() {
+                    console.log("Logout button clicked");
+                    logout();
+                });
+
+                // Load reading stats from server
+                try {
+                    console.log("Fetching user stats...");
+                    const response = await fetch('/bookhub-clean/api/user/stats.php', {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+                        console.log('Stats response raw:', text);
                         
-                        const [
-                            bookId,
-                            title,
-                            author,
-                            coverImage,
-                            listType,
-                            progress,
-                            type,
-                            message,
-                            addedAt,
-                            lastUpdated
-                        ] = line.split('|');
+                        if (text.startsWith('ERROR')) {
+                            throw new Error(text.substring(6));
+                        }
 
-                        activities.push({
-                            bookId,
-                            title,
-                            type,
-                            message,
-                            date: new Date(lastUpdated)
+                        // Parse the text response
+                        const lines = text.split('\n');
+                        const stats = {};
+                        
+                        console.log('Parsing stats lines:', lines);
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            if (!line) continue;
+                            
+                            console.log('Processing stats line:', line);
+                            const [key, value] = line.split(':');
+                            if (key && value) {
+                                stats[key] = parseInt(value);
+                                console.log(`Set stats[${key}] = ${stats[key]}`);
+                            }
+                        }
+
+                        console.log("Parsed stats object:", stats);
+
+                        // Update stats display
+                        document.getElementById('currently-reading-count').textContent = stats['currently-reading'] || 0;
+                        document.getElementById('want-to-read-count').textContent = stats['want-to-read'] || 0;
+                        document.getElementById('completed-count').textContent = stats['completed'] || 0;
+                        
+                        console.log("Updated stats display:", {
+                            'currently-reading': stats['currently-reading'] || 0,
+                            'want-to-read': stats['want-to-read'] || 0,
+                            'completed': stats['completed'] || 0
                         });
+                    } else {
+                        console.error("Stats fetch returned status:", response.status);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
+                } catch (error) {
+                    console.error('Error loading reading stats:', error);
+                }
 
-                    activityList.innerHTML = activities.map(activity => `
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                ${activity.type === 'progress' ? '<i class="fas fa-book-reader"></i>' :
-                                  activity.type === 'added' ? '<i class="fas fa-bookmark"></i>' :
-                                  activity.type === 'completed' ? '<i class="fas fa-check-circle"></i>' :
-                                  '<i class="fas fa-sync-alt"></i>'}
+                // Load recent activity from server
+                try {
+                    console.log("Fetching user activity...");
+                    const response = await fetch('/bookhub-clean/api/user/activity.php', {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+                        console.log('Activity response:', text);
+                        
+                        if (text.startsWith('ERROR')) {
+                            throw new Error(text.substring(6));
+                        }
+
+                        const lines = text.split('\n');
+                        const activityList = document.getElementById('activity-list');
+                        
+                        if (lines.length <= 1 || lines[1] === 'NO_ACTIVITIES') {
+                            activityList.innerHTML = '<p class="no-activity">No recent activity</p>';
+                            return;
+                        }
+
+                        const activities = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            if (!line) continue;
+                            
+                            const [
+                                bookId,
+                                title,
+                                author,
+                                coverImage,
+                                listType,
+                                progress,
+                                type,
+                                message,
+                                addedAt,
+                                lastUpdated
+                            ] = line.split('|');
+
+                            if (!bookId) continue;
+
+                            activities.push({
+                                bookId,
+                                title,
+                                type,
+                                message,
+                                date: lastUpdated ? new Date(lastUpdated) : new Date()
+                            });
+                        }
+
+                        console.log("Parsed activities:", activities);
+
+                        if (activities.length === 0) {
+                            activityList.innerHTML = '<p class="no-activity">No recent activity</p>';
+                            return;
+                        }
+
+                        activityList.innerHTML = activities.map(activity => `
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    ${activity.type === 'progress' ? '<i class="fas fa-book-reader"></i>' :
+                                      activity.type === 'added' ? '<i class="fas fa-bookmark"></i>' :
+                                      activity.type === 'completed' ? '<i class="fas fa-check-circle"></i>' :
+                                      '<i class="fas fa-sync-alt"></i>'}
+                                </div>
+                                <div class="activity-details">
+                                    <p>${activity.message}</p>
+                                    <span class="activity-date">
+                                        ${activity.date.toLocaleDateString()}
+                                    </span>
+                                </div>
                             </div>
-                            <div class="activity-details">
-                                <p>${activity.message}</p>
-                                <span class="activity-date">
-                                    ${activity.date.toLocaleDateString()}
-                                </span>
-                            </div>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        console.error("Activity fetch returned status:", response.status);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('Error loading activity:', error);
+                    document.getElementById('activity-list').innerHTML = 
+                        '<p class="no-activity">Error loading activity</p>';
                 }
             } catch (error) {
-                console.error('Error loading activity:', error);
-                document.getElementById('activity-list').innerHTML = 
-                    '<p class="no-activity">Error loading activity</p>';
+                console.error("Profile page error:", error);
+                document.getElementById('error-message').textContent = 'An error occurred loading the profile: ' + error.message;
+                document.getElementById('error-message').style.display = 'block';
             }
+        });
+
+        // Theme toggle functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const darkModeToggle = document.querySelector('.dark-mode-toggle');
+            
+            // Function to toggle dark mode
+            function toggleDarkMode() {
+                document.body.classList.toggle('dark-mode');
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            }
+
+            // Initialize theme from localStorage
+            function initTheme() {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+
+            // Add click event to dark mode toggle
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', toggleDarkMode);
+            }
+
+            // Initialize theme on page load
+            initTheme();
         });
     </script>
 </body>
